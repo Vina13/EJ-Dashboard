@@ -63,10 +63,10 @@ Semua test unit, API dan komponen berjalan dengan `npm test` di root. E2E dijala
 | REQ-USER-005 Hanya admin mengubah user | P1 | ej-api: lets monitoring users view users but not change them | hides the change buttons from monitoring users | — |
 | REQ-HOME-001 ATM List | P2 | ej-mcp: filters machines by status | opens each menu and submenu | TC-E2E-003 |
 | REQ-HOME-002 EJ Preview | P2 | ej-mcp: returns the EJ preview for a machine | — | TC-E2E-003 |
-| REQ-RPT-001 Daily Report | P2 | ej-mcp: summarises the daily report | lands on Daily Report & Performance… | TC-E2E-002 |
+| REQ-RPT-001 Daily Report | P2 | ej-mcp: summarises the daily report | lands on Daily Report & Performance…; marks pages with sample data | TC-E2E-002 |
 | REQ-MERGE-001 Merge EJ | P3 | — (belum ada backend) | opens each menu and submenu | TC-E2E-003 |
-| REQ-UPLOAD-001 Upload EJ | P3 | — | — | — |
-| REQ-PARSE-001 EJ Parsing | P1 | — | — | — |
+| REQ-UPLOAD-001 Upload EJ | P3 | — (belum ada backend) | opens each menu and submenu | TC-E2E-003 |
+| REQ-PARSE-001 EJ Parsing | P1 | — (belum dibuat) | opens each menu and submenu (halaman contoh) | TC-E2E-003 (halaman contoh) |
 | REQ-INGEST-001 SFTP | P1 | — | — | — |
 
 ### Test E2E (Playwright)
@@ -75,7 +75,7 @@ Semua test unit, API dan komponen berjalan dengan `npm test` di root. E2E dijala
 | --- | --- | --- |
 | TC-E2E-001 | Password salah: tetap di login, pesan "Email atau password salah" | REQ-AUTH-002 |
 | TC-E2E-002 | Login admin: masuk ke Daily Report & Performance, tile dan tabel tampil | REQ-AUTH-001, REQ-RPT-001 |
-| TC-E2E-003 | Semua menu terbuka; pilih mesin di Home mengganti EJ Preview | REQ-HOME-001, 002, REQ-MERGE-001 |
+| TC-E2E-003 | Semua menu terbuka, termasuk EJ Parsing dan Upload EJ Parsing → Upload EJ; pilih mesin di Home mengganti EJ Preview | REQ-HOME-001, 002, REQ-MERGE-001, REQ-PARSE-001, REQ-UPLOAD-001 |
 | TC-E2E-004 | Create → reload → Edit → reload → Delete user; data bertahan di database | REQ-USER-001..004 |
 | TC-E2E-005 | Logout, lalu buka URL menu langsung: kembali ke login | REQ-AUTH-004, 005 |
 
@@ -84,6 +84,6 @@ Semua test unit, API dan komponen berjalan dengan `npm test` di root. E2E dijala
 | Gap | Tier | Tindakan |
 | --- | --- | --- |
 | REQ-INGEST-001 dan REQ-PARSE-001 belum ada kode maupun test | P1 | Tunggu contoh file EJ dan akses SFTP; tulis test dulu (bagian 3) |
-| REQ-UPLOAD-001 tidak ada di menu dan tidak ada test | P3 | Putuskan menu (PRD open question), lalu tambahkan test komponen dan E2E |
+| REQ-UPLOAD-001 dan REQ-PARSE-001 baru diuji sebatas menu terbuka | P3 | Tambahkan test unggah file dan hasil parsing saat backend dibuat |
 | ATM List dan Daily Report diuji dengan data contoh | P2 | Ganti dengan data dari API saat endpoint `/api/machines` dan `/api/reports/daily` dibuat |
 | Belum ada test aksesibilitas dan tampilan mobile | P4 | Tambahkan pemeriksaan Playwright di lebar 375 px |

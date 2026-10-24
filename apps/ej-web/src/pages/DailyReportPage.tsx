@@ -1,5 +1,6 @@
 import { PieChart } from "../PieChart";
 import { SAMPLE_ATMS, SAMPLE_DAILY_REPORT, SAMPLE_REPORT_DATE } from "@repo/shared";
+import { SampleNotice } from "./SampleNotice";
 
 const number = new Intl.NumberFormat("id-ID");
 const percent = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 });
@@ -16,6 +17,7 @@ export function DailyReportPage() {
 
   return (
     <>
+      <SampleNotice>Data contoh. Laporan ini belum dihitung dari data EJ asli.</SampleNotice>
       <p className="muted">Laporan tanggal {SAMPLE_REPORT_DATE}</p>
       <div className="tiles">
         <Tile label="Total mesin" value={number.format(SAMPLE_ATMS.length)} accent="var(--accent)" />

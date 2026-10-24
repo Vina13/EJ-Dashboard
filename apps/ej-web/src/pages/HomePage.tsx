@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { SAMPLE_ATMS, sampleEjPreview, type MachineStatus } from "@repo/shared";
+import { SampleNotice } from "./SampleNotice";
 
 const STATUS_CLASS: Record<MachineStatus, string> = {
   Online: "status-good",
@@ -14,6 +15,7 @@ export function HomePage() {
 
   return (
     <>
+      <SampleNotice>Data contoh. ATM List dan EJ Preview belum terhubung ke data EJ dari Server Sumber EJ.</SampleNotice>
       <div className="split">
         <section className="card">
           <h2>ATM List</h2>

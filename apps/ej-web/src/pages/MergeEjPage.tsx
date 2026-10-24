@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { SAMPLE_ATMS } from "@repo/shared";
+import { SampleNotice } from "./SampleNotice";
 
 /** Use case "Merge EJ": combine EJ files of one machine over a date range. Placeholder only. */
 export function MergeEjPage() {
@@ -13,6 +14,7 @@ export function MergeEjPage() {
 
   return (
     <>
+      <SampleNotice>Halaman placeholder. Proses Merge EJ belum terhubung ke server.</SampleNotice>
       <form className="card form" onSubmit={handleSubmit}>
         <label>
           Terminal

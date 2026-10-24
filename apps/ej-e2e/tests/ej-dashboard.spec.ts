@@ -34,7 +34,7 @@ test("[TC-E2E-002][REQ-AUTH-001][REQ-RPT-001] admin login lands on Daily Report 
   await expect(page.getByRole("heading", { name: "Performance per mesin" })).toBeVisible();
 });
 
-test("[TC-E2E-003][REQ-HOME-001][REQ-HOME-002][REQ-MERGE-001] every menu opens and Home switches the EJ Preview", async ({
+test("[TC-E2E-003][REQ-HOME-001][REQ-HOME-002][REQ-MERGE-001][REQ-PARSE-001][REQ-UPLOAD-001] every menu opens and Home switches the EJ Preview", async ({
   page,
 }) => {
   await loginAsAdmin(page);
@@ -47,6 +47,13 @@ test("[TC-E2E-003][REQ-HOME-001][REQ-HOME-002][REQ-MERGE-001] every menu opens a
 
   await menu(page).getByRole("button", { name: "Merge EJ" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Merge EJ" })).toBeVisible();
+
+  await menu(page).getByRole("button", { name: "EJ Parsing", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Hasil EJ Parsing" })).toBeVisible();
+
+  await menu(page).getByRole("button", { name: "Upload EJ Parsing" }).click();
+  await menu(page).getByRole("button", { name: "Upload EJ", exact: true }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Upload EJ" })).toBeVisible();
 
   await menu(page).getByRole("button", { name: "User", exact: true }).click();
   await menu(page).getByRole("button", { name: "User Management" }).click();

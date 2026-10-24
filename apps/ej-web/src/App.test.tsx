@@ -74,7 +74,7 @@ describe("login (flowchart: Apakah Data Valid?)", () => {
 });
 
 describe("menu", () => {
-  it("[REQ-HOME-001][REQ-MERGE-001] opens each menu and submenu", async () => {
+  it("[REQ-HOME-001][REQ-MERGE-001][REQ-PARSE-001][REQ-UPLOAD-001] opens each menu and submenu", async () => {
     mockApi({
       "GET /api/auth/me": { status: 200, body: success(ADMIN) },
       "GET /api/users": { status: 200, body: success([ADMIN]) },
@@ -91,6 +91,23 @@ describe("menu", () => {
 
     fireEvent.click(within(nav).getByRole("button", { name: "Merge EJ" }));
     expect(screen.getByRole("heading", { level: 1, name: "Merge EJ" })).toBeInTheDocument();
+
+    fireEvent.click(within(nav).getByRole("button", { name: "EJ Parsing" }));
+    expect(screen.getByRole("heading", { name: "Hasil EJ Parsing" })).toBeInTheDocument();
+
+    fireEvent.click(within(nav).getByRole("button", { name: /^Upload EJ Parsing/ }));
+    fireEvent.click(within(nav).getByRole("button", { name: "Upload EJ" }));
+    expect(screen.getByRole("heading", { level: 1, name: "Upload EJ" })).toBeInTheDocument();
+  });
+
+  it("[REQ-HOME-001][REQ-RPT-001] marks pages with sample data", async () => {
+    mockApi({ "GET /api/auth/me": { status: 200, body: success(ADMIN) } });
+    render(<App />);
+    const nav = await screen.findByRole("navigation", { name: "Menu utama" });
+
+    expect(screen.getByText(/^Data contoh/)).toBeInTheDocument();
+    fireEvent.click(within(nav).getByRole("button", { name: "Home" }));
+    expect(screen.getByText(/^Data contoh/)).toBeInTheDocument();
   });
 
   it("[REQ-AUTH-004] returns to the login page after logout", async () => {

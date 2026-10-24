@@ -75,14 +75,14 @@ ID memakai format `REQ-<MODUL>-<NNN>` sesuai PRD QA Traceability. Kolom **Status
 | REQ-USER-004 | Delete User | Admin menghapus user setelah konfirmasi. Admin tidak bisa menghapus akunnya sendiri. | Selesai |
 | REQ-USER-005 | Hanya admin yang mengubah user | User `monitoring` tidak melihat tombol Create/Edit/Delete, dan API menolak dengan HTTP 403. | Selesai |
 | REQ-INGEST-001 | Ambil EJ dari Server Sumber EJ via SFTP (port 22) | File EJ ATM dan CRM baru terambil secara berkala dan tersimpan di Server EJ Dashboard. | Belum dibuat |
-| REQ-PARSE-001 | EJ Parsing | File EJ diubah menjadi data transaksi (waktu, terminal, jenis transaksi, nominal, response code) yang dipakai ATM List dan Daily Report. | Belum dibuat (halaman contoh ada, belum di menu) |
+| REQ-PARSE-001 | EJ Parsing | File EJ diubah menjadi data transaksi (waktu, terminal, jenis transaksi, nominal, response code) yang dipakai ATM List dan Daily Report. | Belum dibuat (menu dan halaman contoh ada) |
 
 ### P1 — penting, menyusul setelah P0
 
 | ID | Requirement | Acceptance criteria | Status |
 | --- | --- | --- | --- |
 | REQ-MERGE-001 | Merge EJ | Pilih terminal dan rentang tanggal, lalu file EJ pada rentang itu digabung menjadi satu file yang bisa diunduh. | Form placeholder, belum ada backend |
-| REQ-UPLOAD-001 | Upload EJ Parsing → Upload EJ | Admin mengunggah file EJ (.txt/.jrn) secara manual; file diproses sama seperti file dari SFTP. | Halaman contoh ada, belum di menu |
+| REQ-UPLOAD-001 | Upload EJ Parsing → Upload EJ | Admin mengunggah file EJ (.txt/.jrn) secara manual; file diproses sama seperti file dari SFTP. | Menu dan form placeholder ada, belum ada backend |
 | REQ-RPT-002 | Pilih tanggal laporan | Daily Report bisa ditampilkan untuk tanggal selain hari ini. | Belum dibuat |
 
 ### P2 — dipertimbangkan nanti (rancang agar tidak menghalangi)
@@ -112,7 +112,6 @@ ID memakai format `REQ-<MODUL>-<NNN>` sesuai PRD QA Traceability. Kolom **Status
 | Jadwal dan folder SFTP di Server Sumber EJ, serta akun SFTP yang dipakai | Tim infrastruktur | Ya, untuk REQ-INGEST-001 |
 | Berapa lama data EJ dan hasil parsing disimpan (retensi) | Bisnis / compliance | Tidak |
 | Definisi status "Problem" (misalnya N transaksi gagal berturut-turut) | Bisnis | Tidak |
-| Apakah EJ Parsing dan Upload EJ Parsing tetap menu terpisah seperti di Use Case FSD? Saat ini keduanya tidak tampil di menu. | PM | Tidak |
 | Repository resmi dari developer: aplikasi ini prototipe QA atau akan menjadi kode produksi? | PM / developer | Tidak |
 
 ## 9. Timeline dan fase (SDLC)
