@@ -2,7 +2,24 @@
   "mcpServers": {
     "playwright": {
       "command": "cmd",
-      "args": ["/c", "npx", "-y", "@playwright/mcp@latest"]
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@playwright/mcp@latest"
+      ]
+    },
+    "ej-dashboard": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npm",
+        "run",
+        "start",
+        "--silent",
+        "-w",
+        "@repo/ej-mcp"
+      ]
     }
   }
 }

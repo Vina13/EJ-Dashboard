@@ -8,3 +8,13 @@ coverage/
 .env.local
 .env.*.local
 !.env.example
+
+# EJ Dashboard SQLite database
+apps/ej-api/data/
+
+# Playwright output (apps/ej-e2e)
+apps/ej-e2e/playwright-report/
+apps/ej-e2e/test-results/
+
+# Playwright MCP snapshots and logs
+.playwright-mcp/
