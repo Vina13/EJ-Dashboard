@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import { SEED_ADMIN } from "../../ej-api/src/seed";
 
@@ -34,7 +35,7 @@ test("[TC-E2E-002][REQ-AUTH-001][REQ-RPT-001] admin login lands on Daily Report 
   await expect(page.getByRole("heading", { name: "Performance per mesin" })).toBeVisible();
 });
 
-test("[TC-E2E-003][REQ-HOME-001][REQ-HOME-002][REQ-MERGE-001][REQ-PARSE-001][REQ-UPLOAD-001] every menu opens and Home switches the EJ Preview", async ({
+test("[TC-E2E-003][REQ-HOME-001][REQ-HOME-002][REQ-MERGE-001] every menu opens and Home switches the EJ Preview", async ({
   page,
 }) => {
   await loginAsAdmin(page);
@@ -47,13 +48,6 @@ test("[TC-E2E-003][REQ-HOME-001][REQ-HOME-002][REQ-MERGE-001][REQ-PARSE-001][REQ
 
   await menu(page).getByRole("button", { name: "Merge EJ" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Merge EJ" })).toBeVisible();
-
-  await menu(page).getByRole("button", { name: "EJ Parsing", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Hasil EJ Parsing" })).toBeVisible();
-
-  await menu(page).getByRole("button", { name: "Upload EJ Parsing" }).click();
-  await menu(page).getByRole("button", { name: "Upload EJ", exact: true }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Upload EJ" })).toBeVisible();
 
   await menu(page).getByRole("button", { name: "User", exact: true }).click();
   await menu(page).getByRole("button", { name: "User Management" }).click();
@@ -116,4 +110,35 @@ test("[TC-E2E-005][REQ-AUTH-004][REQ-AUTH-005] after logout a menu URL shows the
   await page.goto("/#/user-management");
   await expect(page.getByRole("button", { name: "Masuk" })).toBeVisible();
   await expect(menu(page)).toHaveCount(0);
+});
+
+test("[TC-E2E-006][REQ-HOME-002][REQ-RPT-001] EJ menus show data from the server", async ({ page }) => {
+  await loginAsAdmin(page);
+  await expect(page.getByLabel("Tanggal laporan")).toHaveValue("2026-10-24");
+  await expect(page.getByRole("row").filter({ hasText: "S1A0101" })).toBeVisible();
+
+  await menu(page).getByRole("button", { name: "Home" }).click();
+  await expect(page.getByLabel("EJ Preview")).toContainText("TANGGAL  : 2026-10-24");
+});
+
+test("[TC-E2E-007][REQ-MERGE-001] Merge EJ downloads one file with every day of the range", async ({ page }) => {
+  await loginAsAdmin(page);
+  await menu(page).getByRole("button", { name: "Merge EJ" }).click();
+  const form = page.getByRole("form", { name: "Merge EJ" });
+  await form.getByLabel("Terminal").selectOption("S1A0101");
+  await form.getByLabel("Dari tanggal").fill("2026-10-20");
+  await form.getByLabel("Sampai tanggal").fill("2026-10-22");
+
+  const downloadPromise = page.waitForEvent("download");
+  await form.getByRole("button", { name: "Merge EJ" }).click();
+  const download = await downloadPromise;
+
+  expect(download.suggestedFilename()).toBe("EJ_S1A0101_20261020-20261022.txt");
+  const text = readFileSync(await download.path(), "utf8");
+  expect(text.match(/^===== S1A0101 \S+/gm)).toEqual([
+    "===== S1A0101 2026-10-20",
+    "===== S1A0101 2026-10-21",
+    "===== S1A0101 2026-10-22",
+  ]);
+  await expect(form.getByRole("status")).toContainText("berhasil dibuat dan diunduh");
 });

@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { failure, success, type EjUser } from "@repo/shared";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { failure, success, type DailyReport, type EjTransactionList, type EjUser, type Machine } from "@repo/shared";
 import { App } from "./App";
 
 const ADMIN: EjUser = {
@@ -12,7 +12,38 @@ const ADMIN: EjUser = {
 };
 const VINA: EjUser = { ...ADMIN, id: 2, name: "Vina", email: "vina@example.com", role: "monitoring" };
 
-type Route = { status: number; body?: unknown };
+const MACHINES: Machine[] = [
+  { terminalId: "S1A0101", location: "KCP Sudirman, Jakarta", type: "ATM", status: "Online", lastEjAt: "2026-10-24 20:51" },
+  { terminalId: "S1A0418", location: "KCP Medan Merdeka", type: "ATM", status: "Offline", lastEjAt: "2026-10-23 20:12" },
+];
+const REPORT: DailyReport = {
+  date: "2026-10-24",
+  availableDates: ["2026-10-23", "2026-10-24"],
+  machines: { total: 2, online: 1, problem: 0, offline: 1 },
+  rows: [
+    { terminalId: "S1A0101", location: "KCP Sudirman, Jakarta", transactions: 20, failed: 4 },
+    { terminalId: "S1A0418", location: "KCP Medan Merdeka", transactions: 0, failed: 0 },
+  ],
+};
+const TRANSACTIONS: EjTransactionList = {
+  date: "2026-10-24",
+  availableDates: ["2026-10-24"],
+  rows: [
+    { date: "2026-10-24", time: "08:01:26", terminalId: "S1A0101", transaction: "Tarik Tunai", amount: 1500000, rc: "00" },
+    { date: "2026-10-24", time: "08:05:10", terminalId: "S1A0101", transaction: "Cek Saldo", amount: null, rc: "51" },
+  ],
+};
+const EJ_TEXT = "*** ELECTRONIC JOURNAL S1A0101 ***\n08:01:26 TRANSACTION: TARIK TUNAI";
+
+type Route = { status: number; body?: unknown; headers?: Record<string, string> };
+
+/** What the EJ menus load when they open. */
+const EJ_ROUTES: Record<string, Route> = {
+  "GET /api/machines": { status: 200, body: success(MACHINES) },
+  "GET /api/machines/S1A0101/ej": { status: 200, body: success({ terminalId: "S1A0101", date: "2026-10-24", text: EJ_TEXT }) },
+  "GET /api/reports/daily": { status: 200, body: success(REPORT) },
+  "GET /api/ej/transactions": { status: 200, body: success(TRANSACTIONS) },
+};
 
 /** Mocks fetch by "METHOD /path"; a route may be a list, answered in order. */
 function mockApi(routes: Record<string, Route | Route[]>) {
@@ -24,7 +55,9 @@ function mockApi(routes: Record<string, Route | Route[]>) {
     return {
       ok: route.status >= 200 && route.status < 300,
       status: route.status,
+      headers: new Headers(route.headers),
       json: () => Promise.resolve(route.body),
+      blob: () => Promise.resolve(new Blob([String(route.body)])),
     };
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -62,6 +95,7 @@ describe("login (flowchart: Apakah Data Valid?)", () => {
     mockApi({
       "GET /api/auth/me": { status: 401, body: failure("Belum login") },
       "POST /api/auth/login": { status: 200, body: success(ADMIN) },
+      "GET /api/reports/daily": { status: 200, body: success(REPORT) },
     });
     render(<App />);
     await screen.findByLabelText("Email");
@@ -74,16 +108,17 @@ describe("login (flowchart: Apakah Data Valid?)", () => {
 });
 
 describe("menu", () => {
-  it("[REQ-HOME-001][REQ-MERGE-001][REQ-PARSE-001][REQ-UPLOAD-001] opens each menu and submenu", async () => {
+  it("[REQ-HOME-001][REQ-MERGE-001] opens each menu and submenu", async () => {
     mockApi({
       "GET /api/auth/me": { status: 200, body: success(ADMIN) },
       "GET /api/users": { status: 200, body: success([ADMIN]) },
+      ...EJ_ROUTES,
     });
     render(<App />);
     const nav = await screen.findByRole("navigation", { name: "Menu utama" });
 
     fireEvent.click(within(nav).getByRole("button", { name: "Home" }));
-    expect(screen.getByRole("heading", { name: /EJ Preview/ })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /EJ Preview/ })).toBeInTheDocument();
 
     fireEvent.click(within(nav).getByRole("button", { name: /^User/ }));
     fireEvent.click(within(nav).getByRole("button", { name: "User Management" }));
@@ -92,27 +127,13 @@ describe("menu", () => {
     fireEvent.click(within(nav).getByRole("button", { name: "Merge EJ" }));
     expect(screen.getByRole("heading", { level: 1, name: "Merge EJ" })).toBeInTheDocument();
 
-    fireEvent.click(within(nav).getByRole("button", { name: "EJ Parsing" }));
-    expect(screen.getByRole("heading", { name: "Hasil EJ Parsing" })).toBeInTheDocument();
-
-    fireEvent.click(within(nav).getByRole("button", { name: /^Upload EJ Parsing/ }));
-    fireEvent.click(within(nav).getByRole("button", { name: "Upload EJ" }));
-    expect(screen.getByRole("heading", { level: 1, name: "Upload EJ" })).toBeInTheDocument();
-  });
-
-  it("[REQ-HOME-001][REQ-RPT-001] marks pages with sample data", async () => {
-    mockApi({ "GET /api/auth/me": { status: 200, body: success(ADMIN) } });
-    render(<App />);
-    const nav = await screen.findByRole("navigation", { name: "Menu utama" });
-
-    expect(screen.getByText(/^Data contoh/)).toBeInTheDocument();
-    fireEvent.click(within(nav).getByRole("button", { name: "Home" }));
-    expect(screen.getByText(/^Data contoh/)).toBeInTheDocument();
+    expect(within(nav).queryByRole("button", { name: /EJ Parsing|Upload EJ/ })).not.toBeInTheDocument();
   });
 
   it("[REQ-AUTH-004] returns to the login page after logout", async () => {
     mockApi({
       "GET /api/auth/me": { status: 200, body: success(ADMIN) },
+      "GET /api/reports/daily": { status: 200, body: success(REPORT) },
       "POST /api/auth/logout": { status: 204 },
     });
     render(<App />);
@@ -252,5 +273,101 @@ describe("User Management", () => {
     fireEvent.click(within(form).getByRole("button", { name: "Simpan" }));
 
     expect(await within(form).findByRole("alert")).toHaveTextContent("Terjadi kesalahan di server (HTTP 500)");
+  });
+});
+
+describe("EJ menus read from the API", () => {
+  function openAs(user: EjUser, hash: string, routes: Record<string, Route | Route[]> = {}) {
+    window.location.hash = hash;
+    const fetchMock = mockApi({ "GET /api/auth/me": { status: 200, body: success(user) }, ...EJ_ROUTES, ...routes });
+    render(<App />);
+    return fetchMock;
+  }
+
+  it("[REQ-RPT-001] shows the Daily Report counted by the server", async () => {
+    openAs(ADMIN, "/daily-report");
+
+    const total = (await screen.findByText("Total transaksi")).closest(".tile")!;
+    expect(total).toHaveTextContent("20");
+    expect(screen.getByText("1 dari 2")).toBeInTheDocument();
+    expect(screen.getByText("Tingkat sukses").closest(".tile")).toHaveTextContent("80%");
+    expect(screen.getByLabelText("Tanggal laporan")).toHaveValue("2026-10-24");
+  });
+
+  it("[REQ-RPT-002] loads another day when a date is chosen", async () => {
+    const fetchMock = openAs(ADMIN, "/daily-report", {
+      "GET /api/reports/daily?date=2026-10-23": { status: 200, body: success({ ...REPORT, date: "2026-10-23" }) },
+    });
+
+    fireEvent.change(await screen.findByLabelText("Tanggal laporan"), { target: { value: "2026-10-23" } });
+
+    await waitFor(() => expect(screen.getByLabelText("Tanggal laporan")).toHaveValue("2026-10-23"));
+    expect(fetchMock).toHaveBeenCalledWith("/api/reports/daily?date=2026-10-23", expect.anything());
+  });
+
+  it("[REQ-HOME-001][REQ-HOME-002] lists machines and previews the EJ of the first one", async () => {
+    openAs(ADMIN, "/home");
+
+    expect(await screen.findByText("2026-10-23 20:12")).toBeInTheDocument();
+    expect(await screen.findByLabelText("EJ Preview")).toHaveTextContent("ELECTRONIC JOURNAL S1A0101");
+  });
+
+  it("[REQ-HOME-002] explains when a machine has no EJ yet", async () => {
+    openAs(ADMIN, "/home", {
+      "GET /api/machines/S1A0418/ej": { status: 404, body: failure("Belum ada file EJ untuk S1A0418") },
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "S1A0418" }));
+
+    expect(await screen.findByText("Belum ada file EJ untuk S1A0418")).toBeInTheDocument();
+    expect(screen.queryByLabelText("EJ Preview")).not.toBeInTheDocument();
+  });
+
+  it("[REQ-MERGE-001] downloads the merged EJ file", async () => {
+    const createObjectURL = vi.fn(() => "blob:merged");
+    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() }));
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    const fetchMock = openAs(ADMIN, "/merge-ej", {
+      "POST /api/ej/merge": {
+        status: 200,
+        body: EJ_TEXT,
+        headers: { "Content-Disposition": "attachment; filename=EJ_S1A0101_20261020-20261024.txt" },
+      },
+    });
+
+    await waitFor(() => expect(screen.getByLabelText("Dari tanggal")).toHaveValue("2026-10-20"));
+    expect(screen.getByLabelText("Sampai tanggal")).toHaveValue("2026-10-24");
+    fireEvent.click(within(screen.getByRole("form", { name: "Merge EJ" })).getByRole("button", { name: "Merge EJ" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("File EJ_S1A0101_20261020-20261024.txt berhasil dibuat");
+    expect(click).toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/ej/merge",
+      expect.objectContaining({ body: JSON.stringify({ terminalId: "S1A0101", from: "2026-10-20", to: "2026-10-24" }) }),
+    );
+  });
+
+  it("[REQ-MERGE-001] checks the date range before calling the API, and shows server errors", async () => {
+    const fetchMock = openAs(ADMIN, "/merge-ej", {
+      "POST /api/ej/merge": { status: 404, body: failure("Tidak ada file EJ S1A0101 pada 2026-01-01 s.d. 2026-01-02") },
+    });
+    const form = await screen.findByRole("form", { name: "Merge EJ" });
+    await waitFor(() => expect(within(form).getByLabelText("Dari tanggal")).toHaveValue("2026-10-20"));
+
+    fireEvent.change(within(form).getByLabelText("Dari tanggal"), { target: { value: "2026-10-25" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Merge EJ" }));
+    expect(await within(form).findByRole("alert")).toHaveTextContent(/^Tanggal awal harus/);
+    expect(fetchMock).not.toHaveBeenCalledWith("/api/ej/merge", expect.anything());
+
+    fireEvent.change(within(form).getByLabelText("Dari tanggal"), { target: { value: "2026-01-01" } });
+    fireEvent.change(within(form).getByLabelText("Sampai tanggal"), { target: { value: "2026-01-02" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Merge EJ" }));
+    expect(await within(form).findByRole("alert")).toHaveTextContent("Tidak ada file EJ S1A0101 pada 2026-01-01 s.d. 2026-01-02");
+  });
+
+  it("[REQ-AUTH-005] returns to the login page when the session expired on an EJ menu", async () => {
+    openAs(ADMIN, "/home", { "GET /api/machines": { status: 401, body: failure("Belum login") } });
+
+    expect(await screen.findByRole("button", { name: "Masuk" })).toBeInTheDocument();
   });
 });

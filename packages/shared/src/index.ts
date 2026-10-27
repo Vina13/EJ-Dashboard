@@ -59,3 +59,4 @@ export function isUser(value: unknown): value is User {
 
 export * from "./ej";
 export * from "./ejSample";
+export * from "./ejData";

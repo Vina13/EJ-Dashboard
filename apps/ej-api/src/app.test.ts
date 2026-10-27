@@ -1,5 +1,8 @@
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import request from "supertest";
 import { createApp } from "./app";
+import { createEjStore } from "./ejStore";
 import { hashPassword } from "./auth/password";
 import { LOGIN_MAX_FAILURES } from "./auth/rateLimit";
 import { TOKEN_TTL_MS } from "./auth/token";
@@ -24,7 +27,9 @@ function setup() {
     passwordHash: hashPassword(MONITORING_PASSWORD),
   });
   const clock = { now: Date.UTC(2026, 9, 24) };
-  return { app: createApp({ authSecret: SECRET, db, now: () => clock.now }), monitoring, clock };
+  // User tests never touch EJ files; the folder doesn't need to exist
+  const ejStore = createEjStore(join(tmpdir(), "ej-api-test-unused"));
+  return { app: createApp({ authSecret: SECRET, db, ejStore, now: () => clock.now }), monitoring, clock };
 }
 
 async function loginAs(app: ReturnType<typeof setup>["app"], email: string, password: string) {

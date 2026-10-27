@@ -3,10 +3,10 @@
 | | |
 | --- | --- |
 | Produk | EJ Dashboard (Daily Report & Performance ATM/CRM) |
-| Sumber | FSD EJ Dashboard: Gambar 3.1 Solusi Arsitektur, 3.2–3.4 Flowchart, 3.8 Use Case |
+| Sumber | FSD EJ Dashboard 1.0: Gambar 3.1 Solusi Arsitektur, 3.2–3.7 Flowchart, 3.8 Use Case. FSD 1.1 disesuaikan dengan baseline ini |
 | QA owner | Vina |
 | Proses | SDLC (bukan sprint); lihat [testing-strategy.md](testing-strategy.md) dan [design.md](design.md) |
-| Status | Draft v1, 24 Oktober 2026 |
+| Status | Baseline v1.0.0 (dikunci), 27 Oktober 2026 · git tag `ej-dashboard-v1.0.0` |
 
 ## 1. Problem statement
 
@@ -55,7 +55,7 @@ EJ Dashboard mengambil data EJ ATM dan CRM dari Server Sumber EJ melalui SFTP, l
 
 ## 6. Requirements
 
-ID memakai format `REQ-<MODUL>-<NNN>` sesuai PRD QA Traceability. Kolom **Status** menunjukkan kondisi kode per 24 Oktober 2026.
+ID memakai format `REQ-<MODUL>-<NNN>` sesuai PRD QA Traceability. Kolom **Status** menunjukkan kondisi kode di baseline v1.0.0 (27 Oktober 2026).
 
 ### P0 — wajib ada sebelum rilis
 
@@ -66,24 +66,24 @@ ID memakai format `REQ-<MODUL>-<NNN>` sesuai PRD QA Traceability. Kolom **Status
 | REQ-AUTH-003 | Batasi percobaan login | Setelah 5 kali gagal dalam 15 menit untuk email + IP yang sama, login ditolak dengan HTTP 429. | Selesai |
 | REQ-AUTH-004 | Logout dan session berakhir | Tombol Keluar menghapus session; session otomatis habis setelah 1 jam. | Selesai |
 | REQ-AUTH-005 | Semua halaman dan API butuh login | Tanpa session yang valid, API mengembalikan 401 dan UI menampilkan halaman login. | Selesai |
-| REQ-RPT-001 | Daily Report & Performance | Menampilkan total mesin, mesin online, total transaksi, tingkat sukses, grafik sukses/gagal, grafik status mesin, dan tabel performance per mesin untuk satu tanggal. | Data contoh |
-| REQ-HOME-001 | ATM List | Menampilkan Terminal ID, lokasi, tipe (ATM/CRM), status (Online/Offline/Problem) dan waktu EJ terakhir semua mesin. | Data contoh |
-| REQ-HOME-002 | EJ Preview | Memilih mesin di ATM List menampilkan isi EJ terakhir mesin itu. | Data contoh |
+| REQ-RPT-001 | Daily Report & Performance | Menampilkan total mesin, mesin online, total transaksi, tingkat sukses, grafik sukses/gagal, grafik status mesin, dan tabel performance per mesin untuk satu tanggal. | Selesai, dihitung dari EJ yang di-parsing (file EJ contoh di dev) |
+| REQ-HOME-001 | ATM List | Menampilkan Terminal ID, lokasi, tipe (ATM/CRM), status (Online/Offline/Problem) dan waktu EJ terakhir semua mesin. | Selesai (status mesin masih diisi manual di tabel `machines`) |
+| REQ-HOME-002 | EJ Preview | Memilih mesin di ATM List menampilkan isi EJ terakhir mesin itu. | Selesai |
 | REQ-USER-001 | Daftar user | Semua role bisa melihat nama, email, role dan tanggal dibuat. Password hash tidak pernah dikirim ke browser. | Selesai |
 | REQ-USER-002 | Create User | Admin mengisi nama, email, role, password. Validasi: nama wajib (≤ 100 karakter), email valid dan unik, role `admin`/`monitoring`, password ≥ 8 karakter. Data tidak valid tetap di form dengan pesan error. | Selesai |
 | REQ-USER-003 | Edit User | Admin bisa mengubah nama, email, role; password kosong berarti tidak diubah. Jika tidak ada perubahan data, tampil "Tidak ada perubahan data" tanpa menyimpan. Admin tidak bisa menurunkan role akunnya sendiri. | Selesai |
 | REQ-USER-004 | Delete User | Admin menghapus user setelah konfirmasi. Admin tidak bisa menghapus akunnya sendiri. | Selesai |
 | REQ-USER-005 | Hanya admin yang mengubah user | User `monitoring` tidak melihat tombol Create/Edit/Delete, dan API menolak dengan HTTP 403. | Selesai |
 | REQ-INGEST-001 | Ambil EJ dari Server Sumber EJ via SFTP (port 22) | File EJ ATM dan CRM baru terambil secara berkala dan tersimpan di Server EJ Dashboard. | Belum dibuat |
-| REQ-PARSE-001 | EJ Parsing | File EJ diubah menjadi data transaksi (waktu, terminal, jenis transaksi, nominal, response code) yang dipakai ATM List dan Daily Report. | Belum dibuat (menu dan halaman contoh ada) |
+| REQ-PARSE-001 | EJ Parsing | File EJ diubah menjadi data transaksi (waktu, terminal, jenis transaksi, nominal, response code) yang dipakai ATM List dan Daily Report. | Sebagian: parser untuk format EJ contoh; menunggu format asli dari vendor |
 
 ### P1 — penting, menyusul setelah P0
 
 | ID | Requirement | Acceptance criteria | Status |
 | --- | --- | --- | --- |
-| REQ-MERGE-001 | Merge EJ | Pilih terminal dan rentang tanggal, lalu file EJ pada rentang itu digabung menjadi satu file yang bisa diunduh. | Form placeholder, belum ada backend |
-| REQ-UPLOAD-001 | Upload EJ Parsing → Upload EJ | Admin mengunggah file EJ (.txt/.jrn) secara manual; file diproses sama seperti file dari SFTP. | Menu dan form placeholder ada, belum ada backend |
-| REQ-RPT-002 | Pilih tanggal laporan | Daily Report bisa ditampilkan untuk tanggal selain hari ini. | Belum dibuat |
+| REQ-MERGE-001 | Merge EJ | Pilih terminal dan rentang tanggal, lalu file EJ pada rentang itu digabung menjadi satu file yang bisa diunduh. | Selesai |
+| REQ-UPLOAD-001 | Upload EJ Parsing → Upload EJ | Admin mengunggah file EJ (.txt/.jrn) secara manual; file diproses sama seperti file dari SFTP. | Selesai |
+| REQ-RPT-002 | Pilih tanggal laporan | Daily Report bisa ditampilkan untuk tanggal selain hari ini. | Selesai (pilihan tanggal yang punya file EJ) |
 
 ### P2 — dipertimbangkan nanti (rancang agar tidak menghalangi)
 
@@ -125,4 +125,4 @@ ID memakai format `REQ-<MODUL>-<NNN>` sesuai PRD QA Traceability. Kolom **Status
 | 5. Deployment / UAT | UAT di lingkungan klien | UAT sign-off |
 | 6. Maintenance | P1 (Merge EJ, Upload EJ, pilih tanggal) | — |
 
-Ketergantungan utama: akses SFTP ke Server Sumber EJ dan contoh file EJ asli dari vendor. Tanpa keduanya, REQ-INGEST-001 dan REQ-PARSE-001 tidak bisa dimulai, dan semua menu EJ tetap memakai data contoh.
+Ketergantungan utama: akses SFTP ke Server Sumber EJ dan contoh file EJ asli dari vendor. Tanpa keduanya, REQ-INGEST-001 tidak bisa dimulai, REQ-PARSE-001 tetap memakai format EJ contoh, dan semua menu EJ membaca file EJ contoh (atau file yang diunggah lewat Upload EJ).

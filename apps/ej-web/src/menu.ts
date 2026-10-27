@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { IconName } from "./icons";
 
 // Menus from the FSD use case diagram (Gambar 3.8) and flowcharts (Gambar 3.2–3.4)
-export type Route = "home" | "daily-report" | "user-management" | "merge-ej" | "ej-parsing" | "upload-ej";
+export type Route = "home" | "daily-report" | "user-management" | "merge-ej";
 
 export interface MenuLink {
   route: Route;
@@ -23,9 +23,6 @@ export const MENU: MenuItem[] = [
   { route: "daily-report", label: "Daily Report & Performance", icon: "chart" },
   { label: "User", icon: "users", children: [{ route: "user-management", label: "User Management", icon: "user" }] },
   { route: "merge-ej", label: "Merge EJ", icon: "merge" },
-  { route: "ej-parsing", label: "EJ Parsing", icon: "parse" },
-  // Use case: Upload EJ <<extend>> Upload EJ Parsing
-  { label: "Upload EJ Parsing", icon: "upload", children: [{ route: "upload-ej", label: "Upload EJ", icon: "upload" }] },
 ];
 
 /** Flowchart: after "Berhasil Login" the app shows Daily Report & Performance. */

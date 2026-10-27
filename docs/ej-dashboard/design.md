@@ -1,8 +1,8 @@
 # System Design: EJ Dashboard
 
-Status: Draft v1, 24 Oktober 2026 · Requirement: [PRD.md](PRD.md) · Keputusan: [adr/](adr/)
+Status: Baseline v1.0.0 (dikunci), 27 Oktober 2026 · git tag `ej-dashboard-v1.0.0` · Requirement: [PRD.md](PRD.md) · Keputusan: [adr/](adr/)
 
-Dokumen ini menjelaskan dua hal: **apa yang sudah dibangun** di repo ini (login, User Management, menu dengan data contoh) dan **desain target** untuk bagian yang belum ada (ambil EJ via SFTP dan EJ Parsing), sesuai FSD Gambar 3.1.
+Dokumen ini menjelaskan dua hal: **apa yang sudah dibangun** di repo ini (login, User Management, dan semua menu EJ yang membaca file EJ di server) dan **desain target** untuk bagian yang belum ada (ambil EJ via SFTP, parser format vendor, tabel transaksi), sesuai FSD Gambar 3.1.
 
 ## 1. Requirements ringkas
 
@@ -49,11 +49,11 @@ Arah tarikan: Server EJ Dashboard yang **menarik** file dari Sumber EJ ([ADR-000
 | Komponen | Lokasi | Tanggung jawab | Status |
 | --- | --- | --- | --- |
 | `ej-web` | `apps/ej-web` | UI React: login, menu, halaman. Memanggil `/api` lewat proxy (same-origin) | Ada |
-| `ej-api` | `apps/ej-api` | REST API, autentikasi, User Management, akses SQLite | Ada (users saja) |
+| `ej-api` | `apps/ej-api` | REST API, autentikasi, User Management, akses SQLite, menu EJ dari file EJ di `data/ej/<terminal>/<tgl>/` (`ejStore.ts`) | Ada |
 | `ej-mcp` | `apps/ej-mcp` | MCP server read-only agar Claude bisa membaca user, mesin, laporan, EJ preview ([ADR-0006](adr/0006-read-only-mcp-server.md)) | Ada |
 | `shared` | `packages/shared` | Tipe, validasi input, data contoh EJ yang dipakai web, api dan mcp | Ada |
 | `ej-ingest` | belum ada | Job terjadwal: tarik file EJ baru via SFTP, simpan file mentah | Target |
-| `ej-parse` | belum ada | Ubah file EJ menjadi baris transaksi dan status mesin | Target |
+| `ej-parse` | `parseEj` di `packages/shared/src/ejData.ts` | Ubah file EJ menjadi baris transaksi. Sekarang dijalankan saat dibaca (on read) dan memakai format contoh; tabel `ej_transactions` dan status mesin terhitung masih target | Sebagian |
 
 ## 3. Data model
 
@@ -71,17 +71,22 @@ CREATE TABLE users (
 );
 ```
 
+CREATE TABLE machines (
+  terminal_id TEXT PRIMARY KEY,                -- mis. S1A0101
+  location    TEXT NOT NULL,
+  type        TEXT NOT NULL CHECK (type IN ('ATM', 'CRM')),
+  status      TEXT NOT NULL CHECK (status IN ('Online', 'Offline', 'Problem'))  -- diisi manual di v1.0.0
+);
+```
+
 Skema dibuat dan dimigrasi saat `ej-api` start (`apps/ej-api/src/db.ts`). Contoh: role `operator` lama dimigrasi otomatis menjadi `monitoring`.
+
+File EJ mentah disimpan di disk, bukan di database: `data/ej/<terminal>/<YYYY-MM-DD>/<nama file>` (`apps/ej-api/src/ejStore.ts`). File tidak pernah ditimpa. Waktu EJ terakhir, transaksi dan Daily Report dihitung dari file itu setiap kali dibaca (`parseEj`). Di luar production, mesin contoh dan file EJ contoh 20–24 Oktober 2026 dibuat saat start jika masih kosong (`sampleEj.ts`).
 
 ### Target (untuk REQ-INGEST, REQ-PARSE, REQ-HOME, REQ-RPT)
 
 ```sql
-CREATE TABLE machines (
-  terminal_id  TEXT PRIMARY KEY,               -- mis. S1A0101
-  location     TEXT NOT NULL,
-  type         TEXT NOT NULL CHECK (type IN ('ATM', 'CRM')),
-  last_ej_at   TEXT                            -- waktu record EJ terakhir
-);
+ALTER TABLE machines ADD COLUMN last_ej_at TEXT;  -- waktu record EJ terakhir; status dihitung, kolom status dihapus
 
 CREATE TABLE ej_files (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -123,11 +128,12 @@ Semua respons memakai bentuk `{ ok: true, data } | { ok: false, error }` dari `@
 | POST | `/api/users` | admin | Create User | REQ-USER-002 | Ada |
 | PUT | `/api/users/:id` | admin | Edit User | REQ-USER-003 | Ada |
 | DELETE | `/api/users/:id` | admin | Delete User | REQ-USER-004 | Ada |
-| GET | `/api/machines` | login | ATM List dengan status | REQ-HOME-001 | Target |
-| GET | `/api/machines/:terminalId/ej?date=` | login | EJ Preview | REQ-HOME-002 | Target |
-| GET | `/api/reports/daily?date=` | login | Daily Report & Performance | REQ-RPT-001, 002 | Target |
-| POST | `/api/ej/merge` | login | Gabung EJ satu terminal untuk rentang tanggal, hasil file unduhan | REQ-MERGE-001 | Target |
-| POST | `/api/ej/upload` | admin | Upload file EJ manual (multipart) | REQ-UPLOAD-001 | Target |
+| GET | `/api/machines` | login | ATM List dengan status (tabel `machines`) dan EJ terakhir | REQ-HOME-001 | Ada |
+| GET | `/api/machines/:terminalId/ej?date=` | login | EJ Preview; tanpa `date` = hari terakhir yang punya EJ | REQ-HOME-002 | Ada |
+| GET | `/api/reports/daily?date=` | login | Daily Report & Performance dari EJ yang di-parsing | REQ-RPT-001, 002 | Ada |
+| POST | `/api/ej/merge` | login | Gabung EJ satu terminal untuk rentang tanggal (maks. 31 hari), hasil file unduhan `text/plain` | REQ-MERGE-001 | Ada |
+| POST | `/api/ej/upload` | admin | Upload file EJ manual: body `application/octet-stream` (maks. 5 MB), `?terminalId=&date=&fileName=`; tidak menimpa file yang sudah ada (409) | REQ-UPLOAD-001 | Ada |
+| GET | `/api/ej/transactions?date=&terminalId=` | login | EJ Parsing: transaksi hasil parsing satu hari | REQ-PARSE-001 | Ada |
 
 Kode status: 400 input tidak valid, 401 belum login, 403 bukan admin, 404 tidak ditemukan, 409 email sudah terdaftar, 429 terlalu banyak percobaan login.
 
@@ -177,4 +183,5 @@ Dengan asumsi di atas: ±2.000 file × ±500 transaksi = ±1 juta baris per hari
 - Lebih dari satu server aplikasi atau penulis bersamaan → pindah ke PostgreSQL on-premise.
 - Rate limit dan data session di memori → simpan di DB/Redis jika ada lebih dari satu instance.
 - Kode auth terduplikasi di `apps/api` dan `apps/ej-api` → pindahkan ke paket bersama jika keduanya tetap dipakai.
-- Data contoh di `packages/shared/src/ejSample.ts` → hapus setelah `/api/machines` dan `/api/reports/daily` memakai data asli.
+- Data contoh di `packages/shared/src/ejSample.ts` masih dipakai `ej-mcp` dan seed mesin → hapus setelah MCP membaca file EJ yang sama dengan `ej-api` dan mesin diisi dari sumber asli.
+- Parsing saat dibaca (on read) → pindah ke tabel `ej_transactions` saat volume file asli membuat halaman lambat.

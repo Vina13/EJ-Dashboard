@@ -1,6 +1,6 @@
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { defineConfig } from "@playwright/test";
 import { SEED_ADMIN } from "../ej-api/src/seed";
 
@@ -12,6 +12,8 @@ const WEB_PORT = 5184;
 // A new empty database per run; set once so worker processes that reload this config agree
 process.env.EJ_E2E_DB_PATH ??= join(mkdtempSync(join(tmpdir(), "ej-e2e-")), "e2e.db");
 const dbPath = process.env.EJ_E2E_DB_PATH;
+// EJ files next to it; ej-api writes the sample EJ there on start
+const ejDir = join(dirname(dbPath), "ej");
 
 export default defineConfig({
   testDir: "./tests",
@@ -36,6 +38,7 @@ export default defineConfig({
       env: {
         EJ_API_PORT: String(API_PORT),
         EJ_DB_PATH: dbPath,
+        EJ_DATA_DIR: ejDir,
         AUTH_SECRET: "e2e-only-secret",
         // The tests log in with SEED_ADMIN as this process sees it; pass the same values so a
         // different EJ_SEED_ADMIN_* in .env (which only the API loads) can't break login

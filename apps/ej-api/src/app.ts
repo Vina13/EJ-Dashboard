@@ -2,6 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import cookieParser from "cookie-parser";
 import express, { type CookieOptions, type ErrorRequestHandler, type Response } from "express";
 import {
+  MAX_EJ_FILE_BYTES,
   failure,
   normalizeEmail,
   success,
@@ -15,11 +16,16 @@ import { hashPassword, hashPasswordAsync, verifyPassword } from "./auth/password
 import { createRateLimiter } from "./auth/rateLimit";
 import { requireAdmin, requireAuth, type AuthLocals } from "./auth/requireAuth";
 import { SESSION_COOKIE, TOKEN_TTL_MS, passwordStamp, signToken } from "./auth/token";
+import { createEjRouter } from "./ejRoutes";
+import type { EjStore } from "./ejStore";
+import { createMachineRepo } from "./machines";
 import { createUserRepo, toPublicUser } from "./users";
 
 export interface AppOptions {
   authSecret: string;
   db: DatabaseSync;
+  /** Where the raw EJ files live (ejStore.ts). */
+  ejStore: EjStore;
   /** Injectable clock so tests can control token expiry and rate-limit windows. */
   now?: () => number;
 }
@@ -40,7 +46,7 @@ function parseId(raw: string | string[], res: Response): number | null {
   return id;
 }
 
-export function createApp({ authSecret, db, now = Date.now }: AppOptions) {
+export function createApp({ authSecret, db, ejStore, now = Date.now }: AppOptions) {
   const app = express();
   app.use(express.json());
   app.use(cookieParser());
@@ -186,9 +192,17 @@ export function createApp({ authSecret, db, now = Date.now }: AppOptions) {
     res.status(204).end();
   });
 
+  // --- EJ menus: Home, Daily Report, Merge EJ, EJ Parsing, Upload EJ ---
+
+  app.use("/api", createEjRouter({ machines: createMachineRepo(db), store: ejStore, auth }));
+
   const handleErrors: ErrorRequestHandler = (err, _req, res, next) => {
     if (err?.type === "entity.parse.failed") {
       res.status(400).json(failure("Body JSON tidak valid"));
+      return;
+    }
+    if (err?.type === "entity.too.large") {
+      res.status(413).json(failure(`File maksimal ${MAX_EJ_FILE_BYTES / 1024 / 1024} MB`));
       return;
     }
     next(err);

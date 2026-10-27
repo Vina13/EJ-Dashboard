@@ -27,8 +27,22 @@ const USERS_TABLE = (name: string) => `
   )
 `;
 
-// Only user login and user management are stored; the EJ menus use sample data for now.
+// ATM List; the EJ files themselves live on disk (ejStore.ts)
+const MACHINES_TABLE = `
+  CREATE TABLE IF NOT EXISTS machines (
+    terminal_id TEXT PRIMARY KEY,
+    location    TEXT NOT NULL,
+    type        TEXT NOT NULL CHECK (type IN ('ATM', 'CRM')),
+    status      TEXT NOT NULL CHECK (status IN ('Online', 'Offline', 'Problem'))
+  )
+`;
+
 function migrate(db: DatabaseSync): void {
+  db.exec(MACHINES_TABLE);
+  migrateUsers(db);
+}
+
+function migrateUsers(db: DatabaseSync): void {
   const existing = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'users'").get() as
     | { sql: string }
     | undefined;

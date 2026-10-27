@@ -25,11 +25,16 @@ export function requireAuth(users: UserRepo, secret: string, now: () => number):
   };
 }
 
-/** Use after requireAuth: only admins may change users. */
-export const requireAdmin: RequestHandler = (_req, res, next) => {
-  if ((res.locals as AuthLocals).user.role !== "admin") {
-    res.status(403).json(failure("Hanya admin yang boleh mengelola user"));
-    return;
-  }
-  next();
-};
+/** Use after requireAuth: only admins pass; `message` says what the user tried to do. */
+export function adminOnly(message: string): RequestHandler {
+  return (_req, res, next) => {
+    if ((res.locals as AuthLocals).user.role !== "admin") {
+      res.status(403).json(failure(message));
+      return;
+    }
+    next();
+  };
+}
+
+/** Only admins may change users. */
+export const requireAdmin = adminOnly("Hanya admin yang boleh mengelola user");

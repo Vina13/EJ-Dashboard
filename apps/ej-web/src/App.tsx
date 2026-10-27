@@ -5,10 +5,8 @@ import { Icon, type IconName } from "./icons";
 import { LoginPage } from "./LoginPage";
 import { LANDING_ROUTE, MENU, labelOf, useHashRoute, type Route } from "./menu";
 import { DailyReportPage } from "./pages/DailyReportPage";
-import { EjParsingPage } from "./pages/EjParsingPage";
 import { HomePage } from "./pages/HomePage";
 import { MergeEjPage } from "./pages/MergeEjPage";
-import { UploadEjPage } from "./pages/UploadEjPage";
 import { UserManagementPage } from "./pages/UserManagementPage";
 
 type AuthState =
@@ -93,17 +91,13 @@ export function App() {
 function Page({ route, user, onUnauthorized }: { route: Route; user: EjUser; onUnauthorized: () => void }) {
   switch (route) {
     case "home":
-      return <HomePage />;
+      return <HomePage onUnauthorized={onUnauthorized} />;
     case "daily-report":
-      return <DailyReportPage />;
+      return <DailyReportPage onUnauthorized={onUnauthorized} />;
     case "user-management":
       return <UserManagementPage currentUser={user} onUnauthorized={onUnauthorized} />;
     case "merge-ej":
-      return <MergeEjPage />;
-    case "ej-parsing":
-      return <EjParsingPage />;
-    case "upload-ej":
-      return <UploadEjPage />;
+      return <MergeEjPage onUnauthorized={onUnauthorized} />;
   }
 }
 

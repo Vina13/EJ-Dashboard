@@ -1,6 +1,8 @@
 import { pathToFileURL } from "node:url";
 import { hashPassword } from "./auth/password";
 import { DEFAULT_DB_PATH, openDatabase } from "./db";
+import { createMachineRepo } from "./machines";
+import { seedMachines } from "./sampleEj";
 import { createUserRepo, type UserRepo } from "./users";
 
 /**
@@ -25,9 +27,14 @@ export function seedAdmin(users: UserRepo): boolean {
   return true;
 }
 
-// `npm run db:seed -w @repo/ej-api`: create the database file and the admin user
+// `npm run db:seed -w @repo/ej-api`: create the database file, the admin user and the sample machines
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const path = process.env.EJ_DB_PATH ?? DEFAULT_DB_PATH;
-  const created = seedAdmin(createUserRepo(openDatabase(path)));
+  const db = openDatabase(path);
+  const created = seedAdmin(createUserRepo(db));
   console.log(created ? `Seeded admin user ${SEED_ADMIN.email} in ${path}` : `Users already exist in ${path}; nothing seeded`);
+  // Sample machines are development data; production machines come from the client's master list
+  if (process.env.NODE_ENV !== "production" && seedMachines(createMachineRepo(db))) {
+    console.log(`Seeded sample machines in ${path}`);
+  }
 }

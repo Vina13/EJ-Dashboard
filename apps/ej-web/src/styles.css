@@ -387,8 +387,36 @@ label {
 }
 
 .form .error,
-.form .info {
+.form .info,
+.form .success {
   margin: 0;
+}
+
+/* Groups the fields so one attribute can disable them all */
+.form fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.form fieldset > button {
+  align-self: flex-start;
+}
+
+/* A filter that sits in a toolbar: label text beside the control */
+label.inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex: 0 1 auto;
+}
+
+.toolbar.filters {
+  justify-content: flex-start;
 }
 
 .row,
@@ -538,7 +566,9 @@ tr.selected {
   border-radius: 8px;
   font-size: 12.5px;
   line-height: 1.5;
-  overflow-x: auto;
+  overflow: auto;
+  /* A full day of EJ is long; scroll inside the panel instead of the page */
+  max-height: 560px;
 }
 
 /* Pie chart */
