@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ej-api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:ej-api"],
+      "port": 3100
+    },
+    {
+      "name": "ej-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:ej-web"],
+      "port": 5174
+    }
+  ]
+}

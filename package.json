@@ -9,7 +9,9 @@
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "dev:api": "npm run dev -w @repo/api",
-    "dev:web": "npm run dev -w @repo/web"
+    "dev:web": "npm run dev -w @repo/web",
+    "dev:ej-api": "npm run dev -w @repo/ej-api",
+    "dev:ej-web": "npm run dev -w @repo/ej-web"
   },
   "devDependencies": {
     "typescript": "^5.8.3",
