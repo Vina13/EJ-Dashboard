@@ -23,6 +23,7 @@ Diselaraskan dengan FSD 29 Oktober 2026. Role, akses menu, halaman awal dan idle
 | Periode laporan | Hari terakhir yang punya file EJ | H+2 | REQ-RPT-004 |
 | Audit trail | P2 | P0 | REQ-AUDIT-001 |
 | Validasi input | Per field | Karakter terlarang sesuai FSD 6.2.3 | REQ-VALID-001 |
+| Menu EJ Parsing | Halaman ada, belum di menu | Menu EJ Parsing sesuai flowchart Gambar 3.6 ([FSD addendum](fsd/FSD-addendum-ej-parsing.md)) | REQ-PARSE-002 |
 
 ## 1. Problem statement
 
@@ -57,7 +58,7 @@ Sesuai FSD Tabel 6.1 Authorization.
 | `monitoring` | User Monitoring | Petugas monitoring ATM/CRM | Home (View), Merge EJ (View) |
 | `vendor` | User Vendor | Petugas vendor mesin ATM/CRM | Home (View), Merge EJ (View) |
 
-Akses menu EJ Parsing dan Upload EJ belum ada di Tabel 6.1 (lihat Open questions). Sampai dijawab, EJ Parsing terbuka untuk semua role dan Upload EJ hanya untuk `admin`.
+Akses menu EJ Parsing dan Upload EJ belum ada di Tabel 6.1; usulan barisnya ada di [FSD addendum EJ Parsing](fsd/FSD-addendum-ej-parsing.md). Sampai FSD diperbarui, EJ Parsing (View) terbuka untuk semua role dan Upload EJ hanya untuk `admin`.
 
 ## 5. User stories
 
@@ -102,6 +103,7 @@ ID memakai format `REQ-<MODUL>-<NNN>` sesuai PRD QA Traceability. Kolom **Status
 | REQ-VALID-001 | Validasi input (FSD 6.2.3) | Input divalidasi di client dan server: tipe data, panjang maksimal, dan karakter terlarang `~ ' " * < > ^ ; : + - / ! % \|` pada field yang ditentukan. Input tidak valid menampilkan pesan error terstruktur. | Perlu konfirmasi (lihat Open questions) |
 | REQ-INGEST-001 | Ambil EJ hasil tarikan IM-DISTRO via SFTP (port 22) | File EJ ATM dan CRM baru terambil secara berkala dan tersimpan di Server EJ Dashboard. | Belum dibuat |
 | REQ-PARSE-001 | EJ Parsing | File EJ diubah menjadi data transaksi (waktu, terminal, jenis transaksi, nominal, response code) yang dipakai ATM List dan Daily Report. | Sebagian: parser untuk format EJ contoh; menunggu format asli dari vendor |
+| REQ-PARSE-002 | Menu EJ Parsing (FSD Gambar 3.6) | Setelah login, user memilih menu EJ Parsing dan sistem menampilkan transaksi hasil parsing (waktu, Terminal ID, transaksi, nominal, response code) untuk satu tanggal, dengan filter terminal dan tanggal yang punya file EJ, serta jumlah transaksi dan jumlah gagal (RC ≠ 00). Semua role (View). | Selesai |
 
 ### P1 — penting, menyusul setelah P0
 
@@ -137,7 +139,7 @@ ID memakai format `REQ-<MODUL>-<NNN>` sesuai PRD QA Traceability. Kolom **Status
 | --- | --- | --- |
 | FSD menyebut login dengan **username** berbasis domain; aplikasi memakai email. Apakah login harus pakai username, dan domain apa yang dimaksud? | Bisnis / FSD owner | Ya, untuk REQ-AUTH-001 |
 | Karakter terlarang FSD 6.2.3 (`- / : + !` dan lainnya) berlaku untuk field mana? Email butuh `-` dan `.`, dan password sebaiknya tidak dibatasi. | FSD owner | Ya, untuk REQ-VALID-001 |
-| Akses menu EJ Parsing dan Upload EJ per role (belum ada di FSD Tabel 6.1 dan 7.1) | FSD owner | Tidak (sementara: Parsing semua role, Upload hanya admin) |
+| Akses menu EJ Parsing per role: flowchart Gambar 3.6 membuka EJ Parsing dari Daily Report (admin), sedangkan aplikasi membukanya untuk semua role. Akses Upload EJ juga belum ada di Tabel 6.1 | FSD owner | Tidak (sementara: Parsing semua role, Upload hanya admin) |
 | Arti "pencegahan login simultan ganda" di FSD 6.4: login kedua menolak login baru, atau mengakhiri session lama? | FSD owner | Tidak |
 | H+2: apakah tanggal default laporan = hari ini − 2, atau data yang ditarik IM-DISTRO dua hari setelah transaksi? | Bisnis | Ya, untuk REQ-RPT-004 |
 | IM-DISTRO menaruh file EJ di Server Sumber EJ yang diambil via SFTP ([ADR-0005](adr/0005-sftp-pull-ingestion.md)), atau ada integrasi lain? | Tim infrastruktur | Ya, untuk REQ-INGEST-001 |
@@ -155,7 +157,7 @@ Bagian FSD berikut tidak cocok dengan keputusan arsitektur yang sudah diambil, a
 | 6.2.3, 6.2.4, 6.2.5 | PHP Laravel, XAMPP Apache | Node.js (Express) + React + SQLite sesuai [ADR-0001](adr/0001-sqlite-on-premise.md) dan [ADR-0002](adr/0002-signed-cookie-session.md) |
 | 6.2.1, 6.2.5 | Password dienkripsi AES-256 **dan** di-hash BCrypt | Password cukup di-hash satu arah (scrypt di kode, setara BCrypt); enkripsi yang bisa dibuka balik justru melemahkan |
 | Bab 1 | Ada di daftar isi, isinya kosong | Isi Executive Summary |
-| 6.1 Tabel Authorization, 7.1 Tabel Requirement | EJ Parsing dan Upload EJ tidak ada, padahal ada di flowchart, ERD dan screen | Tambahkan baris dan role-nya |
+| 6.1 Tabel Authorization, 7.1 Tabel Requirement | EJ Parsing dan Upload EJ tidak ada, padahal ada di flowchart, ERD dan screen | Tambahkan baris dan role-nya; untuk EJ Parsing lihat [FSD addendum](fsd/FSD-addendum-ej-parsing.md) |
 | 2.2, 4.1, 7.2, 7.3 | Ticketing, akses mobile engineer, CCTV, ganti screen, "User Case IM-Hots" | Hapus sisa teks FSD IM-Solutions |
 | Document Change Control | Hanya versi 1.0 | Tambahkan versi 1.1 dan revisi ini |
 

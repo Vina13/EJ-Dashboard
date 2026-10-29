@@ -33,7 +33,7 @@ Semua test unit, API dan komponen berjalan dengan `npm test` di root. E2E dijala
 | Tier | Requirement | Alasan | Aturan saat waktu terbatas |
 | --- | --- | --- | --- |
 | P1 Critical | REQ-AUTH-001, 002, 005, 007; REQ-USER-002, 003, 004, 005; REQ-AUDIT-001 (saat dibuat); REQ-INGEST-001, REQ-PARSE-001 (saat dibuat) | Keamanan akses dan kebenaran data transaksi bank | Selalu dijalankan, di semua lapisan yang relevan |
-| P2 High | REQ-AUTH-003, 004; REQ-USER-001; REQ-HOME-001, 002; REQ-RPT-001 | Fungsi utama monitoring, dihitung dari file EJ (format contoh) | Dijalankan setiap regresi |
+| P2 High | REQ-AUTH-003, 004; REQ-USER-001; REQ-HOME-001, 002; REQ-RPT-001; REQ-PARSE-002 | Fungsi utama monitoring, dihitung dari file EJ (format contoh) | Dijalankan setiap regresi |
 | P3 Medium | REQ-MERGE-001, REQ-UPLOAD-001, REQ-RPT-002 | Fitur P1 di PRD | Dijalankan jika waktu cukup |
 | P4 Low | Tampilan (warna, ikon, layout) | Tidak memengaruhi data | Hanya regresi penuh |
 
@@ -60,8 +60,8 @@ Semua test unit, API dan komponen berjalan dengan `npm test` di root. E2E dijala
 | REQ-USER-002 Create User | P1 | ej-api: creates a user…; creates a vendor user that can then log in; rejects invalid input and duplicate emails; db: allows the vendor role in a database created before it existed. shared: validateEjUserInput; accepts the three FSD roles | validates Create User input…; creates a user… | TC-E2E-004 |
 | REQ-USER-003 Edit User | P1 | ej-api: edits a user…; changes the password…; does not let an admin demote their own account; db: renames the old operator role to monitoring. shared: requires a password on create but not on edit | does not call the API when an edit changes nothing | TC-E2E-004, TC-E2E-008 |
 | REQ-USER-004 Delete User | P1 | ej-api: deletes a user, but not the account that is logged in; returns 404… | deletes a user after confirmation | TC-E2E-004 |
-| REQ-USER-005 Menu Users hanya admin | P1 | ej-api: answers 403 to monitoring/vendor users on every /api/users endpoint | shows monitoring/vendor users only Home and Merge EJ | TC-E2E-008 |
-| REQ-AUTH-007 Akses menu per role | P1 | shared: matches FSD Tabel 6.1 for every role and menu. ej-api: daily report answers 403 to monitoring/vendor; Merge EJ and Home open to monitoring/vendor | shows monitoring/vendor users only Home and Merge EJ (URL menu terlarang → Home) | TC-E2E-008 |
+| REQ-USER-005 Menu Users hanya admin | P1 | ej-api: answers 403 to monitoring/vendor users on every /api/users endpoint | shows monitoring/vendor users only Home, Merge EJ and EJ Parsing | TC-E2E-008 |
+| REQ-AUTH-007 Akses menu per role | P1 | shared: matches FSD Tabel 6.1 for every role and menu. ej-api: daily report answers 403 to monitoring/vendor; Merge EJ and Home open to monitoring/vendor | shows monitoring/vendor users only Home, Merge EJ and EJ Parsing (URL menu terlarang → Home) | TC-E2E-008 |
 | REQ-HOME-001 ATM List | P2 | ej-api: lists machines with the time of their last EJ record; shows null when a machine has no EJ yet. shared: finds the time of the last record. ej-mcp: filters machines by status | lists machines and previews the EJ of the first one | TC-E2E-003 |
 | REQ-HOME-002 EJ Preview | P2 | ej-api: returns the latest EJ of a machine, or of a chosen day; answers 404/400. ej-mcp: returns the EJ preview for a machine | lists machines and previews…; explains when a machine has no EJ yet | TC-E2E-003, TC-E2E-006 |
 | REQ-RPT-001 Daily Report (admin) | P2 | ej-api: counts transactions and failures from the parsed EJ of the latest day; reports no date when no EJ file exists yet; answers 403 to monitoring/vendor | lands on Daily Report & Performance…; shows the Daily Report counted by the server | TC-E2E-002, TC-E2E-006 |
@@ -69,6 +69,7 @@ Semua test unit, API dan komponen berjalan dengan `npm test` di root. E2E dijala
 | REQ-MERGE-001 Merge EJ | P3 | ej-api: joins the EJ files of the range into one download; rejects invalid input…; is open to monitoring and vendor users. shared: validasi rentang | downloads the merged EJ file; checks the date range before calling the API | TC-E2E-003, TC-E2E-007 |
 | REQ-UPLOAD-001 Upload EJ | P3 | ej-api: stores the file so every EJ menu sees it; never overwrites; rejects unsafe names…; is only for admins. shared: nama file | — | — |
 | REQ-PARSE-001 EJ Parsing | P1 | shared: turns EJ lines into transactions… (format contoh). ej-api: returns parsed transactions…; filters by terminal | — | — |
+| REQ-PARSE-002 Menu EJ Parsing | P2 | shared: matches FSD Tabel 6.1 for every role and menu. ej-api: is open to monitoring/vendor users | opens EJ Parsing from the menu and shows the parsed transactions; shows monitoring/vendor users only Home, Merge EJ and EJ Parsing | TC-E2E-008, TC-E2E-009 |
 | REQ-INGEST-001 SFTP | P1 | — | — | — |
 
 ### Test E2E (Playwright)
@@ -77,12 +78,13 @@ Semua test unit, API dan komponen berjalan dengan `npm test` di root. E2E dijala
 | --- | --- | --- |
 | TC-E2E-001 | Password salah: tetap di login, pesan "Email atau password salah" | REQ-AUTH-002 |
 | TC-E2E-002 | Login admin: masuk ke Daily Report & Performance, tile dan tabel tampil | REQ-AUTH-001, REQ-RPT-001 |
-| TC-E2E-003 | Semua menu terbuka, termasuk EJ Parsing dan Upload EJ Parsing → Upload EJ; pilih mesin di Home mengganti EJ Preview | REQ-HOME-001, 002, REQ-MERGE-001, REQ-PARSE-001, REQ-UPLOAD-001 |
+| TC-E2E-003 | Menu Home, Merge EJ, User Management dan Daily Report terbuka; pilih mesin di Home mengganti EJ Preview | REQ-HOME-001, 002, REQ-MERGE-001 |
 | TC-E2E-004 | Create → reload → Edit → reload → Delete user; data bertahan di database | REQ-USER-001..004 |
 | TC-E2E-005 | Logout, lalu buka URL menu langsung: kembali ke login | REQ-AUTH-004, 005 |
 | TC-E2E-006 | Menu EJ menampilkan data dari server (file EJ contoh) | REQ-HOME-002, REQ-RPT-001 |
 | TC-E2E-007 | Merge EJ mengunduh satu file berisi setiap hari dalam rentang | REQ-MERGE-001 |
-| TC-E2E-008 | Admin membuat user vendor; vendor login masuk ke Home, sidebar hanya Home dan Merge EJ, URL `#/daily-report` kembali ke Home | REQ-USER-002, REQ-AUTH-001, REQ-AUTH-007 |
+| TC-E2E-008 | Admin membuat user vendor; vendor login masuk ke Home, sidebar hanya Home, Merge EJ dan EJ Parsing, URL `#/daily-report` kembali ke Home | REQ-USER-002, REQ-AUTH-001, REQ-AUTH-007 |
+| TC-E2E-009 | Alur flowchart Gambar 3.6: login admin → Daily Report → menu EJ Parsing; tabel hasil parsing tampil dan filter terminal bekerja | REQ-PARSE-002 |
 
 ## 5. Gap
 
@@ -93,6 +95,7 @@ Semua test unit, API dan komponen berjalan dengan `npm test` di root. E2E dijala
 | REQ-MERGE-002, REQ-RPT-004, REQ-VALID-001 belum dibuat | P2–P3 | REQ-RPT-004 dan REQ-VALID-001 menunggu jawaban open question PRD § 8 |
 | Test script manual v1.1 belum dieksekusi | P1 | Jalankan [test-scripts/v1.1-fsd-alignment.md](test-scripts/v1.1-fsd-alignment.md) di UAT |
 | REQ-PARSE-001 diuji dengan format EJ contoh, bukan file vendor | P1 | Ganti fixture dengan file EJ asli vendor saat tersedia |
-| Halaman EJ Parsing dan Upload EJ belum punya test komponen maupun E2E | P3 | Tambahkan test unggah file di UI dan tabel hasil parsing |
+| Halaman Upload EJ belum ada di menu dan belum punya test komponen maupun E2E | P3 | Tambahkan setelah FSD Tabel 6.1 dan 7.1 memuat Upload EJ |
+| Test script manual EJ Parsing belum dieksekusi | P2 | Jalankan [test-scripts/v1.1-ej-parsing.md](test-scripts/v1.1-ej-parsing.md) di UAT |
 | MCP server masih memakai data contoh dari `packages/shared` ([ADR-0006](adr/0006-read-only-mcp-server.md)) | P3 | Arahkan tool MCP ke file EJ yang sama dengan `ej-api` |
 | Belum ada test aksesibilitas dan tampilan mobile | P4 | Tambahkan pemeriksaan Playwright di lebar 375 px |

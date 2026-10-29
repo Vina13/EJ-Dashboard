@@ -13,7 +13,7 @@ export const EJ_ROLE_LABELS: Record<EjRole, string> = {
 };
 
 /** Menus from FSD Tabel 6.1; the web uses them as hash routes (#/daily-report). */
-export const EJ_MENUS = ["home", "daily-report", "user-management", "merge-ej"] as const;
+export const EJ_MENUS = ["home", "daily-report", "user-management", "merge-ej", "ej-parsing"] as const;
 export type EjMenu = (typeof EJ_MENUS)[number];
 
 /** FSD Tabel 6.1 Authorization: which roles may open each menu. API guards and the sidebar both read this. */
@@ -22,6 +22,8 @@ export const MENU_ACCESS: Record<EjMenu, readonly EjRole[]> = {
   "daily-report": ["admin"],
   "user-management": ["admin"],
   "merge-ej": EJ_ROLES,
+  // Not in FSD Tabel 6.1 yet; open to every role until the FSD says otherwise (PRD § 8)
+  "ej-parsing": EJ_ROLES,
 };
 
 export function canAccess(role: EjRole, menu: EjMenu): boolean {

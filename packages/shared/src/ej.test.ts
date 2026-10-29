@@ -38,9 +38,9 @@ describe("menu access", () => {
   it("[REQ-AUTH-007] matches FSD Tabel 6.1 for every role and menu", () => {
     const table = Object.fromEntries(EJ_ROLES.map((role) => [role, EJ_MENUS.filter((menu) => canAccess(role, menu))]));
     expect(table).toEqual({
-      admin: ["home", "daily-report", "user-management", "merge-ej"],
-      monitoring: ["home", "merge-ej"],
-      vendor: ["home", "merge-ej"],
+      admin: ["home", "daily-report", "user-management", "merge-ej", "ej-parsing"],
+      monitoring: ["home", "merge-ej", "ej-parsing"],
+      vendor: ["home", "merge-ej", "ej-parsing"],
     });
   });
 

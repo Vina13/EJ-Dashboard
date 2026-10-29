@@ -143,7 +143,7 @@ test("[TC-E2E-007][REQ-MERGE-001] Merge EJ downloads one file with every day of 
   await expect(form.getByRole("status")).toContainText("berhasil dibuat dan diunduh");
 });
 
-test("[TC-E2E-008][REQ-USER-002][REQ-AUTH-001][REQ-AUTH-007] a vendor user sees only Home and Merge EJ", async ({ page }) => {
+test("[TC-E2E-008][REQ-USER-002][REQ-AUTH-001][REQ-AUTH-007] a vendor user sees only Home, Merge EJ and EJ Parsing", async ({ page }) => {
   // Unique per run, so a rerun against the same database still works
   const email = `vendor.${Date.now()}@example.com`;
   await loginAsAdmin(page);
@@ -160,10 +160,26 @@ test("[TC-E2E-008][REQ-USER-002][REQ-AUTH-001][REQ-AUTH-007] a vendor user sees 
 
   await login(page, email, "vendor12345");
   await expect(page).toHaveURL(/#\/home$/);
-  await expect(menu(page).getByRole("button")).toHaveText(["Home", "Merge EJ"]);
+  await expect(menu(page).getByRole("button")).toHaveText(["Home", "Merge EJ", "EJ Parsing"]);
 
   // A menu outside FSD Tabel 6.1 for this role opens Home instead
   await page.goto("/#/daily-report");
   await expect(page).toHaveURL(/#\/home$/);
   await expect(page.getByRole("heading", { level: 1, name: "Home" })).toBeVisible();
+});
+
+test("[TC-E2E-009][REQ-PARSE-002] EJ Parsing opens from Daily Report and filters by terminal", async ({ page }) => {
+  // FSD flowchart EJ Parsing: login → Daily Report & Performance → Pilih Menu EJ Parsing → Menampilkan EJ Parsing
+  await loginAsAdmin(page);
+  await menu(page).getByRole("button", { name: "EJ Parsing" }).click();
+
+  await expect(page).toHaveURL(/#\/ej-parsing$/);
+  await expect(page.getByRole("heading", { level: 1, name: "EJ Parsing" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hasil EJ Parsing" })).toBeVisible();
+  await expect(page.getByText(/\d+ transaksi, \d+ gagal/)).toBeVisible();
+
+  await page.getByLabel("Terminal").selectOption("S1A0102");
+  const rows = page.getByRole("row").filter({ has: page.getByRole("cell") });
+  await expect(rows.first()).toContainText("S1A0102");
+  for (const text of await rows.allTextContents()) expect(text).toContain("S1A0102");
 });

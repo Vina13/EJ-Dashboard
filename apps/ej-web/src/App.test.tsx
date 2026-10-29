@@ -144,7 +144,21 @@ describe("menu", () => {
     fireEvent.click(within(nav).getByRole("button", { name: "Merge EJ" }));
     expect(screen.getByRole("heading", { level: 1, name: "Merge EJ" })).toBeInTheDocument();
 
-    expect(within(nav).queryByRole("button", { name: /EJ Parsing|Upload EJ/ })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole("button", { name: /Upload EJ/ })).not.toBeInTheDocument();
+  });
+
+  it("[REQ-PARSE-002] opens EJ Parsing from the menu and shows the parsed transactions", async () => {
+    window.location.hash = "/daily-report";
+    mockApi({ "GET /api/auth/me": { status: 200, body: success(ADMIN) }, ...EJ_ROUTES });
+    render(<App />);
+    const nav = await screen.findByRole("navigation", { name: "Menu utama" });
+
+    fireEvent.click(within(nav).getByRole("button", { name: "EJ Parsing" }));
+
+    expect(screen.getByRole("heading", { level: 1, name: "EJ Parsing" })).toBeInTheDocument();
+    expect(window.location.hash).toBe("#/ej-parsing");
+    expect(await screen.findByText("2 transaksi, 1 gagal (response code selain 00)")).toBeInTheDocument();
+    expect(screen.getByRole("row", { name: /08:01:26 S1A0101 Tarik Tunai/ })).toBeInTheDocument();
   });
 
   it("[REQ-AUTH-004] returns to the login page after logout", async () => {
@@ -240,7 +254,7 @@ describe("User Management", () => {
   });
 
   it.each([VINA, VENDOR])(
-    "[REQ-AUTH-007][REQ-USER-005][REQ-RPT-001] shows $role users only Home and Merge EJ",
+    "[REQ-AUTH-007][REQ-USER-005][REQ-RPT-001] shows $role users only Home, Merge EJ and EJ Parsing",
     async (user) => {
       window.location.hash = "/user-management";
       mockApi({ "GET /api/auth/me": { status: 200, body: success(user) }, ...EJ_ROUTES });
@@ -250,7 +264,7 @@ describe("User Management", () => {
       // Opening a menu the role may not see goes to the role's landing page instead
       expect(await screen.findByRole("heading", { level: 1, name: "Home" })).toBeInTheDocument();
       expect(window.location.hash).toBe("#/home");
-      expect(within(nav).getAllByRole("button").map((b) => b.textContent)).toEqual(["Home", "Merge EJ"]);
+      expect(within(nav).getAllByRole("button").map((b) => b.textContent)).toEqual(["Home", "Merge EJ", "EJ Parsing"]);
     },
   );
 

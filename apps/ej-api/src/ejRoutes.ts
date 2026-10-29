@@ -112,9 +112,9 @@ export function createEjRouter({ machines, store, auth }: EjRouterOptions): Rout
     res.json(success(body));
   });
 
-  // --- EJ Parsing (REQ-PARSE-001) ---
+  // --- EJ Parsing (REQ-PARSE-001, REQ-PARSE-002) ---
 
-  router.get("/ej/transactions", auth, (req, res) => {
+  router.get("/ej/transactions", auth, requireMenu("ej-parsing"), (req, res) => {
     const { terminalId } = req.query;
     let only: StoredMachine | undefined;
     if (terminalId !== undefined && terminalId !== "") {

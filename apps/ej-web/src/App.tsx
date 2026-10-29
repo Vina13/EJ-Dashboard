@@ -5,6 +5,7 @@ import { Icon, type IconName } from "./icons";
 import { LoginPage } from "./LoginPage";
 import { labelOf, menuFor, useHashRoute, type MenuItem, type Route } from "./menu";
 import { DailyReportPage } from "./pages/DailyReportPage";
+import { EjParsingPage } from "./pages/EjParsingPage";
 import { HomePage } from "./pages/HomePage";
 import { MergeEjPage } from "./pages/MergeEjPage";
 import { UserManagementPage } from "./pages/UserManagementPage";
@@ -108,6 +109,8 @@ function Page({ route, user, onUnauthorized }: { route: Route; user: EjUser; onU
       return <UserManagementPage currentUser={user} onUnauthorized={onUnauthorized} />;
     case "merge-ej":
       return <MergeEjPage onUnauthorized={onUnauthorized} />;
+    case "ej-parsing":
+      return <EjParsingPage onUnauthorized={onUnauthorized} />;
   }
 }
 

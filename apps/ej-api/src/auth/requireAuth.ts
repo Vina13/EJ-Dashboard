@@ -59,4 +59,5 @@ const MENU_DENIED: Record<EjMenu, string> = {
   "daily-report": "Hanya admin yang boleh melihat Daily Report & Performance",
   "user-management": "Hanya admin yang boleh mengelola user",
   "merge-ej": "Tidak punya akses ke Merge EJ",
+  "ej-parsing": "Tidak punya akses ke EJ Parsing",
 };

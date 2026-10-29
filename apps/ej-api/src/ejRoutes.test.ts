@@ -160,6 +160,11 @@ describe("EJ Parsing", () => {
     expect(new Set(data.rows.map((r: { terminalId: string }) => r.terminalId))).toEqual(new Set(["S1A0102"]));
     expect((await agent.get("/api/ej/transactions?terminalId=NOPE1")).status).toBe(404);
   });
+
+  it.each([MONITORING, VENDOR])("[REQ-PARSE-002][REQ-AUTH-007] is open to $email", async (user) => {
+    const agent = await loginAs(setup().app, user.email, user.password);
+    await agent.get("/api/ej/transactions").expect(200);
+  });
 });
 
 describe("Merge EJ", () => {

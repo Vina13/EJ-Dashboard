@@ -133,7 +133,7 @@ Semua respons memakai bentuk `{ ok: true, data } | { ok: false, error }` dari `@
 | GET | `/api/reports/daily?date=` | admin | Daily Report & Performance dari EJ yang di-parsing | REQ-RPT-001, 002 | Ada |
 | POST | `/api/ej/merge` | login | Gabung EJ satu terminal untuk rentang tanggal (maks. 31 hari), hasil file unduhan `text/plain` | REQ-MERGE-001 | Ada |
 | POST | `/api/ej/upload` | admin | Upload file EJ manual: body `application/octet-stream` (maks. 5 MB), `?terminalId=&date=&fileName=`; tidak menimpa file yang sudah ada (409) | REQ-UPLOAD-001 | Ada |
-| GET | `/api/ej/transactions?date=&terminalId=` | login | EJ Parsing: transaksi hasil parsing satu hari | REQ-PARSE-001 | Ada |
+| GET | `/api/ej/transactions?date=&terminalId=` | login | Menu EJ Parsing: transaksi hasil parsing satu hari | REQ-PARSE-001, 002 | Ada |
 
 Kolom Auth mengikuti FSD Tabel 6.1 (`MENU_ACCESS` di `packages/shared/src/ej.ts`): "login" berarti semua role (`admin`, `monitoring`, `vendor`).
 

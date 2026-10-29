@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { canAccess, type EjMenu, type EjRole } from "@repo/shared";
 import type { IconName } from "./icons";
 
-// Menus from the FSD use case diagram (Gambar 3.8) and flowcharts (Gambar 3.2–3.4)
+// Menus from the FSD use case diagram (Gambar 3.8) and flowcharts (Gambar 3.2–3.6)
 export type Route = EjMenu;
 
 export interface MenuLink {
@@ -24,6 +24,7 @@ export const MENU: MenuItem[] = [
   { route: "daily-report", label: "Daily Report & Performance", icon: "chart" },
   { label: "User", icon: "users", children: [{ route: "user-management", label: "User Management", icon: "user" }] },
   { route: "merge-ej", label: "Merge EJ", icon: "merge" },
+  { route: "ej-parsing", label: "EJ Parsing", icon: "parse" },
 ];
 
 /** MENU without the menus `role` may not open (FSD Tabel 6.1); a group left empty is dropped. */
