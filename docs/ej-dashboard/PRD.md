@@ -5,7 +5,7 @@
 | Produk | EJ Dashboard (Daily Report & Performance ATM/CRM) |
 | Sumber | **FSD EJ Dashboard (versi 29 Oktober 2026) adalah acuan.** Tabel 6.1 Authorization, 6.2 Proposed Solutions, 7.1 Requirement, Gambar 3.1–3.8. Jika PRD dan FSD berbeda, ikuti FSD dan catat di [Perubahan v1.1](#perubahan-v11) |
 | QA owner | Vina |
-| Proses | SDLC (bukan sprint); lihat [testing-strategy.md](testing-strategy.md) dan [design.md](design.md) |
+| Proses | SDLC lihat [testing-strategy.md](testing-strategy.md) dan [design.md](design.md) |
 | Status | **Draft v1.1**, 29 Oktober 2026, diselaraskan dengan FSD. Baseline v1.0.0 tetap di git tag `ej-dashboard-v1.0.0`. Rencana perubahan kode: [changes/v1.1-fsd-alignment.md](changes/v1.1-fsd-alignment.md) |
 
 ## Perubahan v1.1
@@ -27,7 +27,7 @@ Diselaraskan dengan FSD 29 Oktober 2026. Role, akses menu, halaman awal dan idle
 
 ## 1. Problem statement
 
-Tim operasional bank memantau ratusan mesin ATM dan CRM. Electronic Journal (EJ) tiap mesin tersimpan sebagai file teks di Server Sumber EJ, sehingga untuk tahu kondisi mesin dan jumlah transaksi harian, petugas harus membuka file EJ satu per satu. Akibatnya masalah mesin (offline, transaksi gagal) terlambat diketahui, dan laporan harian disusun manual.
+Tim operasional bank memantau Electronic Journal (EJ) dari tiap mesin, data EJ tersimpan sebagai file teks di Server yang khusus menyediakan EJ, sehingga untuk tahu kondisi mesin dan jumlah transaksi harian, petugas harus membuka file EJ satu per satu. Akibatnya masalah mesin (offline, transaksi gagal) terlambat diketahui, dan laporan harian disusun manual.
 
 EJ Dashboard mengambil data EJ ATM dan CRM yang ditarik IM-DISTRO (FSD bab 2), lalu menampilkannya sebagai daftar mesin, preview EJ, dan laporan Daily Report & Performance dalam satu aplikasi web dengan login.
 
@@ -64,7 +64,7 @@ Akses menu EJ Parsing dan Upload EJ belum ada di Tabel 6.1; usulan barisnya ada 
 
 **Petugas monitoring dan vendor**
 - Sebagai petugas monitoring atau vendor, saya ingin langsung melihat Home setelah login, agar daftar mesin dan statusnya langsung terlihat.
-- Sebagai petugas monitoring atau vendor, saya ingin melihat daftar ATM/CRM beserta statusnya, agar mesin yang Offline atau Problem cepat ketahuan.
+- Sebagai petugas monitoring atau vendor, saya ingin melihat daftar ATM/CRM beserta statusnya, agar mesin yang Offline atau Problem cepat diketahui.
 - Sebagai petugas monitoring atau vendor, saya ingin membuka EJ Preview satu mesin, agar bisa memeriksa transaksi terakhir tanpa membuka file di server.
 - Sebagai petugas monitoring atau vendor, saya ingin menggabungkan (merge) EJ satu mesin untuk rentang tanggal tertentu dan melihat hasilnya di layar, agar bisa memeriksa kasus komplain nasabah.
 - Sebagai pengguna, saat login gagal saya ingin tetap di halaman login dengan pesan yang jelas, agar tahu harus mengulang.
