@@ -29,7 +29,7 @@ function setup() {
   const clock = { now: Date.UTC(2026, 9, 24) };
   // User tests never touch EJ files; the folder doesn't need to exist
   const ejStore = createEjStore(join(tmpdir(), "ej-api-test-unused"));
-  return { app: createApp({ authSecret: SECRET, db, ejStore, now: () => clock.now }), monitoring, clock };
+  return { app: createApp({ authSecret: SECRET, db, ejStore, now: () => clock.now }), users, monitoring, clock };
 }
 
 async function loginAs(app: ReturnType<typeof setup>["app"], email: string, password: string) {
@@ -107,11 +107,25 @@ describe("auth", () => {
     await agent.get("/api/auth/me").expect(401);
   });
 
-  it("[REQ-AUTH-004] the session expires after 1 hour", async () => {
+  it("[REQ-AUTH-004] ends the session after 10 idle minutes", async () => {
     const { app, clock } = setup();
+    expect(TOKEN_TTL_MS).toBe(10 * 60 * 1000);
     const agent = await asAdmin(app);
     await agent.get("/api/auth/me").expect(200);
 
+    clock.now += TOKEN_TTL_MS;
+    await agent.get("/api/auth/me").expect(401);
+  });
+
+  it("[REQ-AUTH-004] keeps the session alive while requests keep coming", async () => {
+    const { app, clock } = setup();
+    const agent = await asAdmin(app);
+
+    // Three requests 9 minutes apart: 27 minutes in total, never 10 minutes idle
+    for (let i = 0; i < 3; i++) {
+      clock.now += 9 * 60 * 1000;
+      await agent.get("/api/auth/me").expect(200);
+    }
     clock.now += TOKEN_TTL_MS;
     await agent.get("/api/auth/me").expect(401);
   });
@@ -225,14 +239,35 @@ describe("user management", () => {
     expect(self.body.error).toBe("Tidak bisa menghapus akun sendiri");
   });
 
-  it("[REQ-USER-005] lets monitoring users view users but not change them", async () => {
-    const { app, monitoring } = setup();
-    const agent = await loginAs(app, monitoring.email, MONITORING_PASSWORD);
+  it.each(["monitoring", "vendor"] as const)(
+    "[REQ-USER-001][REQ-USER-005] answers 403 to %s users on every /api/users endpoint",
+    async (role) => {
+      const { app, users } = setup();
+      const user = users.create({
+        name: role,
+        email: `${role}-only@example.com`,
+        role,
+        passwordHash: hashPassword(MONITORING_PASSWORD),
+      });
+      const agent = await loginAs(app, user.email, MONITORING_PASSWORD);
 
-    await agent.get("/api/users").expect(200);
-    const res = await agent.post("/api/users").send(NEW_USER);
-    expect(res.status).toBe(403);
-    await agent.put(`/api/users/${monitoring.id}`).send({ ...NEW_USER }).expect(403);
-    await agent.delete("/api/users/1").expect(403);
+      const list = await agent.get("/api/users");
+      expect(list.status).toBe(403);
+      expect(list.body.error).toBe("Hanya admin yang boleh mengelola user");
+      await agent.get("/api/users/1").expect(403);
+      await agent.post("/api/users").send(NEW_USER).expect(403);
+      await agent.put(`/api/users/${user.id}`).send({ ...NEW_USER }).expect(403);
+      await agent.delete("/api/users/1").expect(403);
+    },
+  );
+
+  it("[REQ-USER-002] creates a vendor user that can then log in", async () => {
+    const { app } = setup();
+    const agent = await asAdmin(app);
+    const vendor = { ...NEW_USER, email: "vendor@example.com", role: "vendor" };
+
+    const res = await agent.post("/api/users").send(vendor).expect(201);
+    expect(res.body.data.role).toBe("vendor");
+    await loginAs(app, vendor.email, vendor.password);
   });
 });

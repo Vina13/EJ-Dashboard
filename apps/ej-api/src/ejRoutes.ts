@@ -18,7 +18,7 @@ import {
   type MergeEjRequest,
   type UploadEjResult,
 } from "@repo/shared";
-import { adminOnly } from "./auth/requireAuth";
+import { adminOnly, requireMenu } from "./auth/requireAuth";
 import { EjFileExistsError, type EjStore } from "./ejStore";
 import type { MachineRepo, StoredMachine } from "./machines";
 
@@ -68,11 +68,11 @@ export function createEjRouter({ machines, store, auth }: EjRouterOptions): Rout
 
   // --- Home: ATM List and EJ Preview (REQ-HOME-001, REQ-HOME-002) ---
 
-  router.get("/machines", auth, (_req, res) => {
+  router.get("/machines", auth, requireMenu("home"), (_req, res) => {
     res.json(success(machines.list().map(toMachine)));
   });
 
-  router.get("/machines/:terminalId/ej", auth, (req, res) => {
+  router.get("/machines/:terminalId/ej", auth, requireMenu("home"), (req, res) => {
     const machine = findMachine(req.params.terminalId, res);
     if (!machine) return;
     const date = pickDate(req.query.date, store.dates(machine.terminalId), res);
@@ -88,7 +88,7 @@ export function createEjRouter({ machines, store, auth }: EjRouterOptions): Rout
 
   // --- Daily Report & Performance (REQ-RPT-001, REQ-RPT-002) ---
 
-  router.get("/reports/daily", auth, (req, res) => {
+  router.get("/reports/daily", auth, requireMenu("daily-report"), (req, res) => {
     const availableDates = store.allDates();
     const date = pickDate(req.query.date, availableDates, res);
     if (date === undefined) return;
@@ -135,7 +135,7 @@ export function createEjRouter({ machines, store, auth }: EjRouterOptions): Rout
 
   // --- Merge EJ (REQ-MERGE-001): one terminal, a range of days, one text file to download ---
 
-  router.post("/ej/merge", auth, (req, res) => {
+  router.post("/ej/merge", auth, requireMenu("merge-ej"), (req, res) => {
     const error = validateMergeInput(req.body);
     if (error) {
       res.status(400).json(failure(error));

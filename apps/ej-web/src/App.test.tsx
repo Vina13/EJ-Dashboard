@@ -11,6 +11,7 @@ const ADMIN: EjUser = {
   updatedAt: "2026-10-24T07:00:00.000Z",
 };
 const VINA: EjUser = { ...ADMIN, id: 2, name: "Vina", email: "vina@example.com", role: "monitoring" };
+const VENDOR: EjUser = { ...ADMIN, id: 3, name: "Vendor", email: "vendor@example.com", role: "vendor" };
 
 const MACHINES: Machine[] = [
   { terminalId: "S1A0101", location: "KCP Sudirman, Jakarta", type: "ATM", status: "Online", lastEjAt: "2026-10-24 20:51" },
@@ -90,7 +91,23 @@ describe("login (flowchart: Apakah Data Valid?)", () => {
     expect(screen.getByRole("button", { name: "Masuk" })).toBeInTheDocument();
   });
 
-  it("[REQ-AUTH-001][REQ-RPT-001] lands on Daily Report & Performance after a successful login", async () => {
+  it("[REQ-AUTH-001] lands vendor users on Home after a successful login", async () => {
+    window.location.hash = "/merge-ej";
+    mockApi({
+      "GET /api/auth/me": { status: 401, body: failure("Belum login") },
+      "POST /api/auth/login": { status: 200, body: success(VENDOR) },
+      ...EJ_ROUTES,
+    });
+    render(<App />);
+    await screen.findByLabelText("Email");
+
+    fillLogin(VENDOR.email, "vendor12345");
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Home" })).toBeInTheDocument();
+    expect(window.location.hash).toBe("#/home");
+  });
+
+  it("[REQ-AUTH-001][REQ-RPT-001] lands admins on Daily Report & Performance after a successful login", async () => {
     window.location.hash = "/merge-ej";
     mockApi({
       "GET /api/auth/me": { status: 401, body: failure("Belum login") },
@@ -222,17 +239,20 @@ describe("User Management", () => {
     expect(screen.queryByText(VINA.email)).not.toBeInTheDocument();
   });
 
-  it("[REQ-USER-005] hides the change buttons from monitoring users", async () => {
-    mockApi({
-      "GET /api/auth/me": { status: 200, body: success(VINA) },
-      "GET /api/users": { status: 200, body: success([ADMIN, VINA]) },
-    });
-    render(<App />);
+  it.each([VINA, VENDOR])(
+    "[REQ-AUTH-007][REQ-USER-005][REQ-RPT-001] shows $role users only Home and Merge EJ",
+    async (user) => {
+      window.location.hash = "/user-management";
+      mockApi({ "GET /api/auth/me": { status: 200, body: success(user) }, ...EJ_ROUTES });
+      render(<App />);
+      const nav = await screen.findByRole("navigation", { name: "Menu utama" });
 
-    expect(await screen.findByText(ADMIN.email)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Create User" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Delete User" })).not.toBeInTheDocument();
-  });
+      // Opening a menu the role may not see goes to the role's landing page instead
+      expect(await screen.findByRole("heading", { level: 1, name: "Home" })).toBeInTheDocument();
+      expect(window.location.hash).toBe("#/home");
+      expect(within(nav).getAllByRole("button").map((b) => b.textContent)).toEqual(["Home", "Merge EJ"]);
+    },
+  );
 
   it("[REQ-AUTH-005] returns to the login page when the session expired before saving", async () => {
     mockApi({

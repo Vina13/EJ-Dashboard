@@ -20,7 +20,7 @@ const USERS_TABLE = (name: string) => `
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     name          TEXT    NOT NULL,
     email         TEXT    NOT NULL UNIQUE,
-    role          TEXT    NOT NULL CHECK (role IN ('admin', 'monitoring')),
+    role          TEXT    NOT NULL CHECK (role IN ('admin', 'monitoring', 'vendor')),
     password_hash TEXT    NOT NULL,
     created_at    TEXT    NOT NULL,
     updated_at    TEXT    NOT NULL
@@ -50,9 +50,10 @@ function migrateUsers(db: DatabaseSync): void {
     db.exec(USERS_TABLE("users"));
     return;
   }
-  // The "operator" role was renamed to "monitoring". SQLite can't alter a CHECK constraint,
-  // so the table is rebuilt with the new constraint and existing operators become monitoring.
-  if (existing.sql.includes("'operator'")) {
+  // SQLite can't alter a CHECK constraint, so the table is rebuilt whenever the role list changes:
+  // the "operator" role was renamed to "monitoring" (existing operators become monitoring), and
+  // FSD 29 Oct 2026 added "vendor".
+  if (!existing.sql.includes("'vendor'")) {
     db.exec("BEGIN");
     try {
       db.exec(USERS_TABLE("users_new"));

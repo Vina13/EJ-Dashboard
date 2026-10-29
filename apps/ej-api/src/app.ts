@@ -14,12 +14,12 @@ import {
 } from "@repo/shared";
 import { hashPassword, hashPasswordAsync, verifyPassword } from "./auth/password";
 import { createRateLimiter } from "./auth/rateLimit";
-import { requireAdmin, requireAuth, type AuthLocals } from "./auth/requireAuth";
+import { requireAuth, requireMenu, type AuthLocals } from "./auth/requireAuth";
 import { SESSION_COOKIE, TOKEN_TTL_MS, passwordStamp, signToken } from "./auth/token";
 import { createEjRouter } from "./ejRoutes";
 import type { EjStore } from "./ejStore";
 import { createMachineRepo } from "./machines";
-import { createUserRepo, toPublicUser } from "./users";
+import { createUserRepo, toPublicUser, type StoredUser } from "./users";
 
 export interface AppOptions {
   authSecret: string;
@@ -52,7 +52,6 @@ export function createApp({ authSecret, db, ejStore, now = Date.now }: AppOption
   app.use(cookieParser());
 
   const users = createUserRepo(db, now);
-  const auth = requireAuth(users, authSecret, now);
   const loginLimiter = createRateLimiter({ now });
   const sessionCookieOptions: CookieOptions = {
     httpOnly: true,
@@ -60,6 +59,15 @@ export function createApp({ authSecret, db, ejStore, now = Date.now }: AppOption
     secure: process.env.NODE_ENV === "production",
     path: "/",
   };
+  // At login and on every authenticated request, so the session ends only after TOKEN_TTL_MS idle
+  const issueSession = (res: Response, user: StoredUser) => {
+    res.cookie(SESSION_COOKIE, signToken(user.id, passwordStamp(user.passwordHash), authSecret, now()), {
+      ...sessionCookieOptions,
+      maxAge: TOKEN_TTL_MS,
+    });
+  };
+  const auth = requireAuth(users, authSecret, now, issueSession);
+  const userAdmin = requireMenu("user-management");
 
   app.get("/health", (_req, res) => {
     const body: HealthResponse = { status: "ok", timestamp: new Date().toISOString() };
@@ -92,10 +100,7 @@ export function createApp({ authSecret, db, ejStore, now = Date.now }: AppOption
     }
 
     loginLimiter.reset(limitKey);
-    res.cookie(SESSION_COOKIE, signToken(user.id, passwordStamp(user.passwordHash), authSecret, now()), {
-      ...sessionCookieOptions,
-      maxAge: TOKEN_TTL_MS,
-    });
+    issueSession(res, user);
     res.json(success(toPublicUser(user)));
   });
 
@@ -110,11 +115,11 @@ export function createApp({ authSecret, db, ejStore, now = Date.now }: AppOption
 
   // --- User Management (flowchart: Create User, Edit User, Delete User) ---
 
-  app.get("/api/users", auth, (_req, res) => {
+  app.get("/api/users", auth, userAdmin, (_req, res) => {
     res.json(success(users.list().map(toPublicUser)));
   });
 
-  app.get("/api/users/:id", auth, (req, res) => {
+  app.get("/api/users/:id", auth, userAdmin, (req, res) => {
     const id = parseId(req.params.id, res);
     if (id === null) return;
     const user = users.findById(id);
@@ -125,7 +130,7 @@ export function createApp({ authSecret, db, ejStore, now = Date.now }: AppOption
     res.json(success(toPublicUser(user)));
   });
 
-  app.post("/api/users", auth, requireAdmin, async (req, res) => {
+  app.post("/api/users", auth, userAdmin, async (req, res) => {
     const error = validateEjUserInput(req.body, "create");
     if (error) {
       res.status(400).json(failure(error));
@@ -146,7 +151,7 @@ export function createApp({ authSecret, db, ejStore, now = Date.now }: AppOption
     }
   });
 
-  app.put("/api/users/:id", auth, requireAdmin, async (req, res) => {
+  app.put("/api/users/:id", auth, userAdmin, async (req, res) => {
     const id = parseId(req.params.id, res);
     if (id === null) return;
     const error = validateEjUserInput(req.body, "edit");
@@ -178,7 +183,7 @@ export function createApp({ authSecret, db, ejStore, now = Date.now }: AppOption
     }
   });
 
-  app.delete("/api/users/:id", auth, requireAdmin, (req, res) => {
+  app.delete("/api/users/:id", auth, userAdmin, (req, res) => {
     const id = parseId(req.params.id, res);
     if (id === null) return;
     if (id === (res.locals as AuthLocals).user.id) {

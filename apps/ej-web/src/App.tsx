@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import type { EjUser } from "@repo/shared";
+import { canAccess, landingMenu, type EjUser } from "@repo/shared";
 import { getMe, logout } from "./api";
 import { Icon, type IconName } from "./icons";
 import { LoginPage } from "./LoginPage";
-import { LANDING_ROUTE, MENU, labelOf, useHashRoute, type Route } from "./menu";
+import { labelOf, menuFor, useHashRoute, type MenuItem, type Route } from "./menu";
 import { DailyReportPage } from "./pages/DailyReportPage";
 import { HomePage } from "./pages/HomePage";
 import { MergeEjPage } from "./pages/MergeEjPage";
@@ -20,12 +20,19 @@ export function App() {
   // Small screens show the sidebar as a drawer
   const [menuOpen, setMenuOpen] = useState(false);
   const showLogin = useCallback(() => setAuth({ status: "anonymous" }), []);
+  const role = auth.status === "authenticated" ? auth.user.role : null;
+  // A missing hash, or a menu the role may not open (FSD Tabel 6.1), shows the role's landing page
+  const page = role && route && canAccess(role, route) ? route : role && landingMenu(role);
 
   useEffect(() => {
     getMe()
       .then((body) => setAuth(body.ok ? { status: "authenticated", user: body.data } : { status: "anonymous" }))
       .catch(() => setAuth({ status: "anonymous" }));
   }, []);
+
+  useEffect(() => {
+    if (page && page !== route) navigate(page);
+  }, [page, route, navigate]);
 
   async function handleLogout() {
     try {
@@ -43,16 +50,19 @@ export function App() {
       <LoginPage
         onSuccess={(user) => {
           setAuth({ status: "authenticated", user });
-          navigate(LANDING_ROUTE);
+          navigate(landingMenu(user.role));
         }}
       />
     );
   }
 
+  const current = page ?? landingMenu(auth.user.role);
+
   return (
     <div className={`shell${menuOpen ? " menu-open" : ""}`}>
       <Sidebar
-        route={route}
+        menu={menuFor(auth.user.role)}
+        route={current}
         onNavigate={(next) => {
           navigate(next);
           setMenuOpen(false);
@@ -69,7 +79,7 @@ export function App() {
           >
             <Icon name="menu" />
           </button>
-          <h1>{labelOf(route)}</h1>
+          <h1>{labelOf(current)}</h1>
           <div className="topbar-user">
             <span className="avatar" aria-hidden>
               {auth.user.name.charAt(0).toUpperCase()}
@@ -81,7 +91,7 @@ export function App() {
           </div>
         </header>
         <main className="page">
-          <Page route={route} user={auth.user} onUnauthorized={showLogin} />
+          <Page route={current} user={auth.user} onUnauthorized={showLogin} />
         </main>
       </div>
     </div>
@@ -101,7 +111,15 @@ function Page({ route, user, onUnauthorized }: { route: Route; user: EjUser; onU
   }
 }
 
-function Sidebar({ route, onNavigate }: { route: Route; onNavigate: (route: Route) => void }) {
+function Sidebar({
+  menu,
+  route,
+  onNavigate,
+}: {
+  menu: MenuItem[];
+  route: Route;
+  onNavigate: (route: Route) => void;
+}) {
   // Groups start open when one of their submenus is the current page
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
@@ -114,7 +132,7 @@ function Sidebar({ route, onNavigate }: { route: Route; onNavigate: (route: Rout
         EJ Dashboard
       </div>
       <ul>
-        {MENU.map((item) => {
+        {menu.map((item) => {
           if (!("children" in item)) {
             return (
               <li key={item.route}>

@@ -1,7 +1,8 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
 export const SESSION_COOKIE = "ej_session";
-export const TOKEN_TTL_MS = 60 * 60 * 1000;
+/** FSD 6.2.4: logged out after 10 idle minutes; every authenticated request renews it (requireAuth). */
+export const TOKEN_TTL_MS = 10 * 60 * 1000;
 
 interface TokenPayload {
   sub: number;

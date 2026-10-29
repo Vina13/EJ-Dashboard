@@ -142,3 +142,28 @@ test("[TC-E2E-007][REQ-MERGE-001] Merge EJ downloads one file with every day of 
   ]);
   await expect(form.getByRole("status")).toContainText("berhasil dibuat dan diunduh");
 });
+
+test("[TC-E2E-008][REQ-USER-002][REQ-AUTH-001][REQ-AUTH-007] a vendor user sees only Home and Merge EJ", async ({ page }) => {
+  // Unique per run, so a rerun against the same database still works
+  const email = `vendor.${Date.now()}@example.com`;
+  await loginAsAdmin(page);
+  await page.goto("/#/user-management");
+  await page.getByRole("button", { name: "Create User" }).click();
+  const create = page.getByRole("form", { name: "Create User" });
+  await create.getByLabel("Nama").fill("Vendor E2E");
+  await create.getByLabel("Email").fill(email);
+  await create.getByLabel("Role").selectOption({ label: "User Vendor" });
+  await create.getByLabel("Password").fill("vendor12345");
+  await create.getByRole("button", { name: "Simpan" }).click();
+  await expect(page.getByRole("status")).toHaveText("Data user Vendor E2E berhasil tersimpan");
+  await page.getByRole("button", { name: "Keluar" }).click();
+
+  await login(page, email, "vendor12345");
+  await expect(page).toHaveURL(/#\/home$/);
+  await expect(menu(page).getByRole("button")).toHaveText(["Home", "Merge EJ"]);
+
+  // A menu outside FSD Tabel 6.1 for this role opens Home instead
+  await page.goto("/#/daily-report");
+  await expect(page).toHaveURL(/#\/home$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Home" })).toBeVisible();
+});

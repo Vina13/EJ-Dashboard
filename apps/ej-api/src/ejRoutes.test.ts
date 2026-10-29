@@ -14,6 +14,7 @@ import { createUserRepo } from "./users";
 // Test names start with the PRD requirement ID (docs/ej-dashboard/testing-strategy.md)
 
 const MONITORING = { email: "monitoring@example.com", password: "monitoring123" };
+const VENDOR = { email: "vendor@example.com", password: "vendor12345" };
 const LAST_DAY = SAMPLE_EJ_DATES[SAMPLE_EJ_DATES.length - 1];
 const dirs: string[] = [];
 
@@ -23,6 +24,7 @@ function setup({ sampleEj = true } = {}) {
   const users = createUserRepo(db);
   seedAdmin(users);
   users.create({ name: "Monitoring", email: MONITORING.email, role: "monitoring", passwordHash: hashPassword(MONITORING.password) });
+  users.create({ name: "Vendor", email: VENDOR.email, role: "vendor", passwordHash: hashPassword(VENDOR.password) });
   const machines = createMachineRepo(db);
   seedMachines(machines);
   const dir = mkdtempSync(join(tmpdir(), "ej-store-"));
@@ -119,6 +121,13 @@ describe("Daily Report & Performance", () => {
     expect(data.rows.find((r: { terminalId: string }) => r.terminalId === "S1A0418").transactions).toBeGreaterThan(0);
   });
 
+  it.each([MONITORING, VENDOR])("[REQ-RPT-001][REQ-AUTH-007] answers 403 to $email", async (user) => {
+    const agent = await loginAs(setup().app, user.email, user.password);
+    const res = await agent.get("/api/reports/daily");
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe("Hanya admin yang boleh melihat Daily Report & Performance");
+  });
+
   it("[REQ-RPT-001] reports no date when no EJ file exists yet", async () => {
     const agent = await asAdmin(setup({ sampleEj: false }).app);
     const { data } = (await agent.get("/api/reports/daily").expect(200)).body;
@@ -181,9 +190,15 @@ describe("Merge EJ", () => {
     expect(empty.body.error).toBe("Tidak ada file EJ S1A0101 pada 2026-01-01 s.d. 2026-01-05");
   });
 
-  it("[REQ-MERGE-001] is open to monitoring users", async () => {
-    const agent = await loginAs(setup().app, MONITORING.email, MONITORING.password);
+  it.each([MONITORING, VENDOR])("[REQ-MERGE-001][REQ-AUTH-007] is open to $email", async (user) => {
+    const agent = await loginAs(setup().app, user.email, user.password);
     await agent.post("/api/ej/merge").send({ terminalId: "S1A0101", from: LAST_DAY, to: LAST_DAY }).expect(200);
+  });
+
+  it.each([MONITORING, VENDOR])("[REQ-HOME-001][REQ-AUTH-007] lists machines and their EJ for $email", async (user) => {
+    const agent = await loginAs(setup().app, user.email, user.password);
+    await agent.get("/api/machines").expect(200);
+    await agent.get("/api/machines/S1A0101/ej").expect(200);
   });
 });
 

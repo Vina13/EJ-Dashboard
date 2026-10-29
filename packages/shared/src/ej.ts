@@ -2,8 +2,36 @@ import { MAX_PASSWORD_LENGTH, normalizeEmail } from "./index";
 
 // Types and validation for the EJ Dashboard app (apps/ej-api + apps/ej-web)
 
-export const EJ_ROLES = ["admin", "monitoring"] as const;
+export const EJ_ROLES = ["admin", "monitoring", "vendor"] as const;
 export type EjRole = (typeof EJ_ROLES)[number];
+
+/** Role names as the FSD writes them. */
+export const EJ_ROLE_LABELS: Record<EjRole, string> = {
+  admin: "Administrator",
+  monitoring: "User Monitoring",
+  vendor: "User Vendor",
+};
+
+/** Menus from FSD Tabel 6.1; the web uses them as hash routes (#/daily-report). */
+export const EJ_MENUS = ["home", "daily-report", "user-management", "merge-ej"] as const;
+export type EjMenu = (typeof EJ_MENUS)[number];
+
+/** FSD Tabel 6.1 Authorization: which roles may open each menu. API guards and the sidebar both read this. */
+export const MENU_ACCESS: Record<EjMenu, readonly EjRole[]> = {
+  home: EJ_ROLES,
+  "daily-report": ["admin"],
+  "user-management": ["admin"],
+  "merge-ej": EJ_ROLES,
+};
+
+export function canAccess(role: EjRole, menu: EjMenu): boolean {
+  return MENU_ACCESS[menu].includes(role);
+}
+
+/** FSD flowchart: after "Berhasil Login" admins see Daily Report & Performance, other roles see Home. */
+export function landingMenu(role: EjRole): EjMenu {
+  return canAccess(role, "daily-report") ? "daily-report" : "home";
+}
 
 export interface EjUser {
   id: number;

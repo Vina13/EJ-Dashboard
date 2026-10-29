@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { EJ_ROLES, validateEjUserInput, type EjRole, type EjUser, type EjUserInput } from "@repo/shared";
+import { EJ_ROLES, EJ_ROLE_LABELS, validateEjUserInput, type EjRole, type EjUser, type EjUserInput } from "@repo/shared";
 import { UNAUTHORIZED, createUser, deleteUser, getUsers, updateUser } from "../api";
 
 interface UserManagementPageProps {
@@ -215,7 +215,7 @@ function UserForm({ initial, onCancel, onSaved, onUnauthorized }: UserFormProps)
           <select value={role} onChange={(e) => setRole(e.target.value as EjRole)}>
             {EJ_ROLES.map((r) => (
               <option key={r} value={r}>
-                {r}
+                {EJ_ROLE_LABELS[r]}
               </option>
             ))}
           </select>

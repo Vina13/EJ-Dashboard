@@ -6,7 +6,7 @@ Dokumen ini menjelaskan dua hal: **apa yang sudah dibangun** di repo ini (login,
 
 ## 1. Requirements ringkas
 
-**Fungsional** (detail di PRD): login dan logout, User Management (admin), ATM List + EJ Preview, Daily Report & Performance, Merge EJ, EJ Parsing, Upload EJ.
+**Fungsional** (detail di PRD): login dan logout, akses menu per role (admin, monitoring, vendor), User Management (admin), ATM List + EJ Preview, Daily Report & Performance, Merge EJ, EJ Parsing, Upload EJ.
 
 **Non-fungsional**
 
@@ -64,7 +64,7 @@ CREATE TABLE users (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
   name          TEXT NOT NULL,
   email         TEXT NOT NULL UNIQUE,          -- disimpan lowercase
-  role          TEXT NOT NULL CHECK (role IN ('admin', 'monitoring')),
+  role          TEXT NOT NULL CHECK (role IN ('admin', 'monitoring', 'vendor')),
   password_hash TEXT NOT NULL,                 -- scrypt "salt:hash"
   created_at    TEXT NOT NULL,                 -- ISO 8601 UTC
   updated_at    TEXT NOT NULL
@@ -79,7 +79,7 @@ CREATE TABLE machines (
 );
 ```
 
-Skema dibuat dan dimigrasi saat `ej-api` start (`apps/ej-api/src/db.ts`). Contoh: role `operator` lama dimigrasi otomatis menjadi `monitoring`.
+Skema dibuat dan dimigrasi saat `ej-api` start (`apps/ej-api/src/db.ts`). Contoh: role `operator` lama dimigrasi otomatis menjadi `monitoring`, dan constraint role diperluas dengan `vendor` (FSD 29 Oktober 2026).
 
 File EJ mentah disimpan di disk, bukan di database: `data/ej/<terminal>/<YYYY-MM-DD>/<nama file>` (`apps/ej-api/src/ejStore.ts`). File tidak pernah ditimpa. Waktu EJ terakhir, transaksi dan Daily Report dihitung dari file itu setiap kali dibaca (`parseEj`). Di luar production, mesin contoh dan file EJ contoh 20–24 Oktober 2026 dibuat saat start jika masih kosong (`sampleEj.ts`).
 
@@ -123,23 +123,25 @@ Semua respons memakai bentuk `{ ok: true, data } | { ok: false, error }` dari `@
 | POST | `/api/auth/login` | — | Login, set cookie `ej_session` | REQ-AUTH-001..003 | Ada |
 | POST | `/api/auth/logout` | — | Hapus cookie | REQ-AUTH-004 | Ada |
 | GET | `/api/auth/me` | login | User saat ini | REQ-AUTH-005 | Ada |
-| GET | `/api/users` | login | Daftar user | REQ-USER-001 | Ada |
-| GET | `/api/users/:id` | login | Satu user | REQ-USER-001 | Ada |
+| GET | `/api/users` | admin | Daftar user | REQ-USER-001 | Ada |
+| GET | `/api/users/:id` | admin | Satu user | REQ-USER-001 | Ada |
 | POST | `/api/users` | admin | Create User | REQ-USER-002 | Ada |
 | PUT | `/api/users/:id` | admin | Edit User | REQ-USER-003 | Ada |
 | DELETE | `/api/users/:id` | admin | Delete User | REQ-USER-004 | Ada |
 | GET | `/api/machines` | login | ATM List dengan status (tabel `machines`) dan EJ terakhir | REQ-HOME-001 | Ada |
 | GET | `/api/machines/:terminalId/ej?date=` | login | EJ Preview; tanpa `date` = hari terakhir yang punya EJ | REQ-HOME-002 | Ada |
-| GET | `/api/reports/daily?date=` | login | Daily Report & Performance dari EJ yang di-parsing | REQ-RPT-001, 002 | Ada |
+| GET | `/api/reports/daily?date=` | admin | Daily Report & Performance dari EJ yang di-parsing | REQ-RPT-001, 002 | Ada |
 | POST | `/api/ej/merge` | login | Gabung EJ satu terminal untuk rentang tanggal (maks. 31 hari), hasil file unduhan `text/plain` | REQ-MERGE-001 | Ada |
 | POST | `/api/ej/upload` | admin | Upload file EJ manual: body `application/octet-stream` (maks. 5 MB), `?terminalId=&date=&fileName=`; tidak menimpa file yang sudah ada (409) | REQ-UPLOAD-001 | Ada |
 | GET | `/api/ej/transactions?date=&terminalId=` | login | EJ Parsing: transaksi hasil parsing satu hari | REQ-PARSE-001 | Ada |
 
-Kode status: 400 input tidak valid, 401 belum login, 403 bukan admin, 404 tidak ditemukan, 409 email sudah terdaftar, 429 terlalu banyak percobaan login.
+Kolom Auth mengikuti FSD Tabel 6.1 (`MENU_ACCESS` di `packages/shared/src/ej.ts`): "login" berarti semua role (`admin`, `monitoring`, `vendor`).
+
+Kode status: 400 input tidak valid, 401 belum login atau idle lebih dari 10 menit, 403 role tidak punya akses ke menu itu, 404 tidak ditemukan, 409 email sudah terdaftar, 429 terlalu banyak percobaan login.
 
 ## 5. Alur penting
 
-**Login (flowchart Gambar 3.2):** `ej-web` kirim email + password → `ej-api` validasi format (400) → cek rate limit (429) → cari user dan bandingkan scrypt hash, selalu dengan waktu yang sama walau email tidak ada → gagal: 401, UI tetap di form login → sukses: cookie httpOnly berisi token HMAC 1 jam ([ADR-0002](adr/0002-signed-cookie-session.md)), UI pindah ke Daily Report.
+**Login (flowchart Gambar 3.2):** `ej-web` kirim email + password → `ej-api` validasi format (400) → cek rate limit (429) → cari user dan bandingkan scrypt hash, selalu dengan waktu yang sama walau email tidak ada → gagal: 401, UI tetap di form login → sukses: cookie httpOnly berisi token HMAC yang habis setelah 10 menit tanpa request ([ADR-0002](adr/0002-signed-cookie-session.md), amandemen 2026-10-29), UI pindah ke Daily Report untuk admin atau ke Home untuk monitoring dan vendor.
 
 **Ambil dan parsing EJ (target):**
 1. `ej-ingest` berjalan tiap 5 menit, daftar file baru di folder SFTP Sumber EJ.
@@ -153,9 +155,9 @@ Kode status: 400 input tidak valid, 401 belum login, 403 bukan admin, 404 tidak 
 ## 6. Keamanan
 
 - Password: scrypt dengan salt acak; hash tidak pernah dikirim ke browser atau MCP.
-- Session: cookie `httpOnly`, `SameSite=Lax`, `Secure` di production; token ditandatangani `AUTH_SECRET`.
+- Session: cookie `httpOnly`, `SameSite=Lax`, `Secure` di production; token ditandatangani `AUTH_SECRET`; habis setelah 10 menit tanpa request, diperpanjang setiap request (FSD 6.2.4).
 - Rate limit login per email + IP (5 kali / 15 menit).
-- Otorisasi: perubahan user hanya untuk admin; admin tidak bisa menghapus atau menurunkan role dirinya sendiri.
+- Otorisasi per menu sesuai FSD Tabel 6.1: Daily Report dan User Management hanya admin; Home dan Merge EJ semua role. Menu tersembunyi di sidebar dan API menjawab 403; admin tidak bisa menghapus atau menurunkan role dirinya sendiri.
 - Akun SFTP: read-only di Sumber EJ, kredensial di `.env` server, tidak di repo.
 - MCP server membuka database dalam mode read-only.
 

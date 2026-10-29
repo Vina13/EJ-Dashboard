@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
+import { canAccess, type EjMenu, type EjRole } from "@repo/shared";
 import type { IconName } from "./icons";
 
 // Menus from the FSD use case diagram (Gambar 3.8) and flowcharts (Gambar 3.2–3.4)
-export type Route = "home" | "daily-report" | "user-management" | "merge-ej";
+export type Route = EjMenu;
 
 export interface MenuLink {
   route: Route;
@@ -25,8 +26,14 @@ export const MENU: MenuItem[] = [
   { route: "merge-ej", label: "Merge EJ", icon: "merge" },
 ];
 
-/** Flowchart: after "Berhasil Login" the app shows Daily Report & Performance. */
-export const LANDING_ROUTE: Route = "daily-report";
+/** MENU without the menus `role` may not open (FSD Tabel 6.1); a group left empty is dropped. */
+export function menuFor(role: EjRole): MenuItem[] {
+  return MENU.flatMap((item): MenuItem[] => {
+    if (!("children" in item)) return canAccess(role, item.route) ? [item] : [];
+    const children = item.children.filter((c) => canAccess(role, c.route));
+    return children.length > 0 ? [{ ...item, children }] : [];
+  });
+}
 
 const ROUTES = new Set<string>(
   MENU.flatMap((item) => ("children" in item ? item.children.map((c) => c.route) : [item.route])),
@@ -44,14 +51,15 @@ export function labelOf(route: Route): string {
   return route;
 }
 
-function parseHash(hash: string): Route {
+/** null when the hash names no menu; App then shows the landing page of the logged-in role. */
+function parseHash(hash: string): Route | null {
   const name = hash.replace(/^#\/?/, "");
-  return ROUTES.has(name) ? (name as Route) : LANDING_ROUTE;
+  return ROUTES.has(name) ? (name as Route) : null;
 }
 
 /** The current page lives in the URL hash (#/user-management), so a reload stays on the same menu. */
-export function useHashRoute(): [Route, (route: Route) => void] {
-  const [route, setRoute] = useState<Route>(() => parseHash(window.location.hash));
+export function useHashRoute(): [Route | null, (route: Route) => void] {
+  const [route, setRoute] = useState<Route | null>(() => parseHash(window.location.hash));
 
   useEffect(() => {
     const onChange = () => setRoute(parseHash(window.location.hash));
